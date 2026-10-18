@@ -129,7 +129,7 @@ export function launchAcpTestAgent(options: AcpTestLaunchOptions): LaunchedAcpTe
     ...agent.profile === undefined ? {} : { sourceImport: 'tsx/esm' },
     env: {
       ...options.env,
-      DSH_HOME: join(cwd, '.dsh'),
+      DSH_HOME: join(cwd, '.danke-harness'),
       DSH_AGENTS_HOME: join(cwd, '.agents'),
     },
   })
@@ -197,7 +197,7 @@ export function launchAcpTestAgent(options: AcpTestLaunchOptions): LaunchedAcpTe
   }
   const requestPermission = options.requestPermission
     ?? (() => Promise.resolve({ outcome: { outcome: 'cancelled' as const } }))
-  const clientApp = createAcpClientApp({ name: 'deepseek-harness-acp-test-client' })
+  const clientApp = createAcpClientApp({ name: 'danke-harness-acp-test-client' })
     .onNotification(methods.client.session.update, ({ params }) => {
       return trackClientCallback(() => {
         updates.push(params.update)
@@ -393,7 +393,7 @@ function linkProfilePackage(source: string, cwd: string, profile: string, packag
   const packageDir = packageDirFromPatch(source, packageName)
   // The package may instead belong to the dsh installation; profile boot heals those links.
   if (packageDir === undefined) return
-  const link = join(cwd, '.dsh', 'profiles', profile, 'node_modules', packageName)
+  const link = join(cwd, '.danke-harness', 'profiles', profile, 'node_modules', packageName)
   mkdirSync(dirname(link), { recursive: true })
   if (existsSync(link)) {
     if (realpathSync(link) !== packageDir) {

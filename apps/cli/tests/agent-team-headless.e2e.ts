@@ -20,7 +20,7 @@ describe('dsh run with Agent Teams enabled', () => {
   it('runs two teammates, direct peer messages, dependent tasks, waiting, and final aggregation', async () => {
     const cwd = await mkdtemp(join(tmpdir(), 'dsh-agent-team-headless-'))
     try {
-      const home = join(cwd, '.dsh')
+      const home = join(cwd, '.danke-harness')
       const sessions = join(home, 'sessions')
       const profileDir = join(home, 'profiles', 'headless')
       await mkdir(profileDir, { recursive: true })

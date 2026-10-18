@@ -28,7 +28,7 @@ final class CapabilityPad: NSView {
 final class CapabilityTextView: NSTextView {
     var attemptedPaste: ((Bool) -> Void)?
     override func paste(_ sender: Any?) {
-        let owned = NSPasteboard.general.data(forType: NSPasteboard.PasteboardType("org.deepseek-harness.cua.clipboard-owner")) != nil
+        let owned = NSPasteboard.general.data(forType: NSPasteboard.PasteboardType("org.danke-harness.cua.clipboard-owner")) != nil
         attemptedPaste?(owned)
         if owned { super.paste(sender) }
     }

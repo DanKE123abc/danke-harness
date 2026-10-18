@@ -5,7 +5,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { lastAssistantStreamChunk, type RetryPolicyConfig, type TokenUsage } from '@deepseek-ai/dsh-llm'
-import { DeepSeekHarness } from '@deepseek-ai/dsh-sdk-client'
+import { DankeHarness } from '@deepseek-ai/dsh-sdk-client'
 import type { SessionEvent } from '@deepseek-ai/dsh-session'
 import { describe, expect, it, onTestFinished } from 'vitest'
 
@@ -90,7 +90,7 @@ describe.skipIf(!process.env.DEEPSEEK_API_KEY)('SDK native tool updates with rea
       { id: 'plugin-package-inventory-deepseek', disabled: true },
       { insert: [{ id: 'sdk-dynamic-tool-cache-fixture', name: fixturePath, config: { evidencePath, callsPath, sampleLabel, updatePrompt } }] },
     ]))
-    const harness = new DeepSeekHarness({
+    const harness = new DankeHarness({
       dshBin, profile: 'sdk', patches: [patch], dshHome: join(root, 'home'),
       cwd: root, processCwd: root, provider: 'deepseek-official', model: 'deepseek-flash',
       env: { ...process.env, DSH_TELEMETRY_DISABLED: '1', DSH_PERMISSION_MODE: 'danger-full-access' },

@@ -14,7 +14,7 @@ let downloads
 let cache
 if (existsSync(join(resourceDirectory, 'downloads.json'))) {
   downloads = JSON.parse(await readFile(join(resourceDirectory, 'downloads.json'), 'utf8'))
-  const root = process.env.DSH_RESOURCE_CACHE ?? join(homedir(), '.cache', 'deepseek-harness', 'resources')
+  const root = process.env.DSH_RESOURCE_CACHE ?? join(homedir(), '.cache', 'danke-harness', 'resources')
   if (!isAbsolute(root)) throw new Error('DSH_RESOURCE_CACHE must be an absolute directory')
   if (!/^[a-f0-9]{64}$/u.test(downloads.identity)) throw new Error('runtime download manifest has an invalid cache identity')
   cache = join(root, downloads.identity)

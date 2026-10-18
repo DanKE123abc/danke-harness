@@ -1,13 +1,13 @@
 {
   "name": "@deepseek-ai/dsh-hooks-codex",
-  "description": "Bridge plugin: run a Codex hooks.json hook config on the DeepSeek Harness interception seams",
+  "description": "Bridge plugin: run a Codex hooks.json hook config on the Danke Harness interception seams",
   "version": "0.2.1-rc.2",
   "publishConfig": {
     "access": "public"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/deepseek-ai/deepseek-harness.git",
+    "url": "git+https://github.com/DanKE123abc/danke-harness.git",
     "directory": "packages/experimental/hooks-codex"
   },
   "type": "module",

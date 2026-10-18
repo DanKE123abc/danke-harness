@@ -356,11 +356,11 @@ describe('file projection', () => {
   })
 
   it('renders the handle with the read path or the explicit no-path fallback', () => {
-    const withPath = fileHandleText(fileBlock('notes.pdf').attachment, '/home/.dsh/attachments/v1/files/ab/x/notes.pdf')
+    const withPath = fileHandleText(fileBlock('notes.pdf').attachment, '/home/.danke-harness/attachments/v1/files/ab/x/notes.pdf')
     expect(withPath).toContain('"notes.pdf"')
     expect(withPath).toContain('42 bytes')
     expect(withPath).toContain('sha256:abababab')
-    expect(withPath).toContain('"/home/.dsh/attachments/v1/files/ab/x/notes.pdf"')
+    expect(withPath).toContain('"/home/.danke-harness/attachments/v1/files/ab/x/notes.pdf"')
     expect(withPath).toContain('include this saved path in the delegation prompt')
     expect(withPath).toContain('only subagents sharing this execution environment can read it')
     const withoutPath = fileHandleText(fileBlock('notes.pdf').attachment, undefined)

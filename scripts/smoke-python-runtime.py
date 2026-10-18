@@ -26,7 +26,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Callable, Literal
 
 if TYPE_CHECKING:
-    from deepseek_harness import Notification, RunResult
+    from danke_harness import Notification, RunResult
 
 
 EXPECTED_TEXT = "runtime smoke ok"
@@ -901,7 +901,7 @@ def smoke_sdk_authoring(base_url: str, executable: Path, update_snapshots: bool)
 
 
 def _smoke_sdk_authoring_cached(base_url: str, executable: Path, update_snapshots: bool, cache: Path) -> None:
-    from deepseek_harness import DeepSeekHarness
+    from danke_harness import DankeHarness
 
     cache_environment = {**os.environ, "DSH_RESOURCE_CACHE": str(cache), "DSH_RUNTIME_DOWNLOAD": "primary"}
     primary = Path(json.loads(subprocess.check_output([str(executable)], encoding="utf-8", env=cache_environment)))
@@ -918,7 +918,7 @@ def _smoke_sdk_authoring_cached(base_url: str, executable: Path, update_snapshot
             patch = root / "skills.patch.yml"
             patch.write_text(json.dumps([{"id": "skill-office", "disabled": True}] if mode == "disabled" else []))
             first = len(MockModelHandler.requests)
-            with DeepSeekHarness(
+            with DankeHarness(
                 provider="deepseek-official", model="smoke-model", cwd=str(root),
                 dsh_bin=str(executable), dsh_home=str(home), patches=(str(patch),),
                 api_key="sk-keyless-smoke", base_url=base_url,
@@ -970,7 +970,7 @@ def _smoke_sdk_authoring_cached(base_url: str, executable: Path, update_snapshot
 
 def smoke_sdk_office(executable: Path) -> None:
     """Exercise the relocated profile's bundled Office API and shell commands."""
-    from deepseek_harness import DeepSeekHarness
+    from danke_harness import DankeHarness
 
     checks_path = Path(__file__).resolve().parent / "fixtures/office-render.py"
     checks = runpy.run_path(checks_path)
@@ -978,7 +978,7 @@ def smoke_sdk_office(executable: Path) -> None:
     with checks["workspace"](None if artifacts is None else Path(artifacts), prefix="dsh-sdk-office-") as root:
         relocated = root / executable.name
         stem = executable.name.removesuffix(".exe")
-        resources = executable.with_name(stem.removeprefix("deepseek-harness-sdk-runtime-"))
+        resources = executable.with_name(stem.removeprefix("danke-harness-sdk-runtime-"))
         for source in [*executable.parent.glob(f"{stem}*"), resources]:
             destination = root / source.name
             if source.is_dir():
@@ -989,7 +989,7 @@ def smoke_sdk_office(executable: Path) -> None:
         office = Path(json.loads(subprocess.check_output([str(relocated)], encoding="utf-8", env={**cache_environment, "DSH_RUNTIME_DOWNLOAD": "office"})))
         assert not (office.parent / "primary").exists(), "Office download unexpectedly prepared the authoring environment"
         adapter = office / "node_modules/@deepseek-ai/libreoffice-kit/package.json"
-        native = stem.removeprefix("deepseek-harness-sdk-runtime-").replace("win-", "win32-").replace("macos-", "darwin-")
+        native = stem.removeprefix("danke-harness-sdk-runtime-").replace("win-", "win32-").replace("macos-", "darwin-")
         declared = json.loads(adapter.read_text(encoding="utf-8")).get("optionalDependencies", {})
         selected = native if f"@deepseek-ai/libreoffice-kit-{native}" in declared else "wasm"
         expected_backend = "wasm" if selected == "wasm" else "native"
@@ -1025,7 +1025,7 @@ def smoke_sdk_office(executable: Path) -> None:
             "config": {"input": str(document), "output": str(output), "result": str(result_path),
                        "imageInput": str(documents["pptx"]), "imageOutput": str(root / "node-pptx")},
         }]}]))
-        with DeepSeekHarness(
+        with DankeHarness(
             provider="deepseek-official",
             model="smoke-model",
             cwd=str(root),
@@ -1060,7 +1060,7 @@ def smoke_sdk_office(executable: Path) -> None:
 import sys, zipfile
 from pathlib import Path
 from xml.etree import ElementTree
-from deepseek_harness.office import convert, render_images, recalculate
+from danke_harness.office import convert, render_images, recalculate
 root = Path(sys.argv[1])
 assert convert(root / 'color-blocks.docx', root / 'python.pdf').backend == sys.argv[2]
 rendered = render_images(root / 'python.pdf', root / 'images', pages=[1])
@@ -1088,14 +1088,14 @@ def assert_installed_wheel_environment() -> Path:
     if cwd.is_relative_to(repo_root):
         raise AssertionError(f"installed-wheel smoke must run outside the repository, got {cwd}")
 
-    sdk_version = importlib.metadata.version("deepseek-harness-sdk")
-    runtime_version = importlib.metadata.version("deepseek-harness-runtime-bin")
+    sdk_version = importlib.metadata.version("danke-harness-sdk")
+    runtime_version = importlib.metadata.version("danke-harness-runtime-bin")
     if sdk_version != runtime_version:
         raise AssertionError(
             f"installed SDK/runtime versions differ: {sdk_version} != {runtime_version}"
         )
-    expected_runtime_requirement = f"deepseek-harness-runtime-bin=={sdk_version}"
-    requirements = importlib.metadata.requires("deepseek-harness-sdk") or []
+    expected_runtime_requirement = f"danke-harness-runtime-bin=={sdk_version}"
+    requirements = importlib.metadata.requires("danke-harness-sdk") or []
     if expected_runtime_requirement not in requirements:
         raise AssertionError(
             f"installed SDK does not require {expected_runtime_requirement}: {requirements}"
@@ -1103,7 +1103,7 @@ def assert_installed_wheel_environment() -> Path:
 
     prefix = Path(sys.prefix).resolve()
     imported: dict[str, Path] = {}
-    for name in ("deepseek_harness", "deepseek_harness_runtime"):
+    for name in ("danke_harness", "danke_harness_runtime"):
         module = importlib.import_module(name)
         module_file = getattr(module, "__file__", None)
         if not isinstance(module_file, str):
@@ -1115,12 +1115,12 @@ def assert_installed_wheel_environment() -> Path:
             raise AssertionError(f"installed module {name} came from the repository checkout: {path}")
         imported[name] = path
 
-    runtime_module = sys.modules["deepseek_harness_runtime"]
+    runtime_module = sys.modules["danke_harness_runtime"]
     executable = runtime_module.bundled_runtime_path().resolve()
-    runtime_package = imported["deepseek_harness_runtime"].parent
+    runtime_package = imported["danke_harness_runtime"].parent
     if not executable.is_relative_to(runtime_package):
         raise AssertionError(f"bundled runtime came from outside the installed runtime wheel: {executable}")
-    runtime_files = importlib.metadata.files("deepseek-harness-runtime-bin") or []
+    runtime_files = importlib.metadata.files("danke-harness-runtime-bin") or []
     if not any(Path(file).name == executable.name for file in runtime_files):
         raise AssertionError(f"runtime executable is absent from installed distribution records: {executable}")
     return executable
@@ -1128,7 +1128,7 @@ def assert_installed_wheel_environment() -> Path:
 
 def smoke_sdk_live() -> None:
     """Run a real-model, tool-using two-turn task through installed wheels."""
-    from deepseek_harness import DeepSeekHarness
+    from danke_harness import DankeHarness
 
     api_key = os.environ.get("DEEPSEEK_API_KEY")
     base_url = os.environ.get("DEEPSEEK_BASE_URL")
@@ -1149,7 +1149,7 @@ def smoke_sdk_live() -> None:
             f"content {LIVE_API_SENTINEL}, with no newline or byte-order mark. "
             f"Then reply with exactly {LIVE_API_SENTINEL}.\n{marker}"
         )
-        with DeepSeekHarness(
+        with DankeHarness(
             provider="deepseek-official",
             model="deepseek-v4-flash",
             cwd=str(root),
@@ -1240,13 +1240,13 @@ def safe_turn_end(value: object) -> object:
 
 
 def smoke_sdk_default(base_url: str) -> None:
-    from deepseek_harness import DeepSeekHarness
+    from danke_harness import DankeHarness
 
     with tempfile.TemporaryDirectory(prefix="dsh-sdk-default-") as temporary:
         root = Path(temporary).resolve()
         dsh_home = root / "home"
         sessions = dsh_home / "sessions"
-        with DeepSeekHarness(
+        with DankeHarness(
             provider="deepseek-official",
             model="smoke-model",
             cwd=str(root),
@@ -1269,7 +1269,7 @@ def smoke_sdk_default(base_url: str) -> None:
 
 
 def smoke_sdk_custom(base_url: str, executable: Path) -> None:
-    from deepseek_harness import DeepSeekHarness
+    from danke_harness import DankeHarness
 
     cases: tuple[tuple[Literal["native", "ptc"], tuple[tuple[str, str], ...]], ...] = (
         ("native", (("reply with the smoke text", EXPECTED_TEXT), (WORKFLOW_PROMPT, WORKFLOW_WORKER_TEXT))),
@@ -1281,7 +1281,7 @@ def smoke_sdk_custom(base_url: str, executable: Path) -> None:
             dsh_home = root / "home"
             sessions = dsh_home / "sessions"
             patch = write_advanced_profile_patch(root, "custom.patch.yml", sessions, mode)
-            with DeepSeekHarness(
+            with DankeHarness(
                 provider="deepseek-official",
                 model="smoke-model",
                 cwd=str(root),
@@ -1306,7 +1306,7 @@ def smoke_sdk_minimal(
     base_url: str, executable: Path, update_snapshots: bool, *, in_history: bool = False,
 ) -> None:
     """Exercise the shipped standalone minimal profile through the packaged executable."""
-    from deepseek_harness import DeepSeekHarness
+    from danke_harness import DankeHarness
 
     # One mock model serves every scenario of a run, so the snapshot takes this turn's slice.
     first_request = len(MockModelHandler.requests)
@@ -1327,7 +1327,7 @@ def smoke_sdk_minimal(
                 }]},
             ]))
             patches = (str(patch),)
-        with DeepSeekHarness(
+        with DankeHarness(
             provider="deepseek-official",
             model="smoke-model",
             cwd=str(root),
@@ -1362,7 +1362,7 @@ def smoke_sdk_minimal(
 
 def smoke_sdk_dynamic_tools(base_url: str, executable: Path, update_snapshots: bool) -> None:
     """Observe native tool changes through the shipped SDK profile and its durable log."""
-    from deepseek_harness import DeepSeekHarness
+    from danke_harness import DankeHarness
 
     first_request = len(MockModelHandler.requests)
     with tempfile.TemporaryDirectory(prefix="dsh-sdk-dynamic-tools-") as temporary:
@@ -1389,7 +1389,7 @@ def smoke_sdk_dynamic_tools(base_url: str, executable: Path, update_snapshots: b
                 "name": (Path(__file__).resolve().parent / "fixtures/python-sdk-dynamic-tools.mjs").as_uri(),
             }]},
         ])
-        with DeepSeekHarness(
+        with DankeHarness(
             provider="deepseek-official", model="smoke-model", cwd=str(root),
             dsh_bin=str(executable), dsh_home=str(dsh_home), patches=(str(patch),),
             env={
@@ -1416,7 +1416,7 @@ def smoke_sdk_dynamic_tools(base_url: str, executable: Path, update_snapshots: b
 
 def smoke_sdk_fs_search(base_url: str, executable: Path) -> None:
     """Exercise real grep and glob spawns through the packaged executable."""
-    from deepseek_harness import DeepSeekHarness
+    from danke_harness import DankeHarness
 
     with tempfile.TemporaryDirectory(prefix="dsh-sdk-fs-search-") as temporary:
         root = Path(temporary).resolve()
@@ -1427,7 +1427,7 @@ def smoke_sdk_fs_search(base_url: str, executable: Path) -> None:
             {"id": "skill-filesystem", "disabled": True},
             {"id": "tool-fs-search", "config": {"sampleOverCapGlobResults": False}},
         ])
-        with DeepSeekHarness(
+        with DankeHarness(
             provider="deepseek-official",
             model="smoke-model",
             cwd=str(root),
@@ -1450,14 +1450,14 @@ def smoke_sdk_fs_search(base_url: str, executable: Path) -> None:
 
 def smoke_sdk_spawn_node(base_url: str, executable: Path) -> None:
     """A shell command starting with `node` must reach the machine's Node, not the executable."""
-    from deepseek_harness import DeepSeekHarness
+    from danke_harness import DankeHarness
 
     with tempfile.TemporaryDirectory(prefix="dsh-sdk-spawn-node-") as temporary:
         root = Path(temporary).resolve()
         dsh_home = root / "home"
         sessions = dsh_home / "sessions"
         patch = write_profile_patch(root, "spawn-node.patch.yml", sessions, [])
-        with DeepSeekHarness(
+        with DankeHarness(
             provider="deepseek-official",
             model="smoke-model",
             cwd=str(root),
@@ -1480,7 +1480,7 @@ def smoke_sdk_spawn_node(base_url: str, executable: Path) -> None:
 
 def smoke_sdk_mcp(base_url: str, executable: Path | None) -> None:
     """Discover and call an external stdio MCP tool through the packaged client."""
-    from deepseek_harness import DeepSeekHarness
+    from danke_harness import DankeHarness
 
     with tempfile.TemporaryDirectory(prefix="dsh-sdk-mcp-") as temporary:
         root = Path(temporary).resolve()
@@ -1490,7 +1490,7 @@ def smoke_sdk_mcp(base_url: str, executable: Path | None) -> None:
         server_script.write_text(MCP_SERVER_SCRIPT)
         patch = write_mcp_patch(root, sessions, server_script)
         discovery_log = server_script.with_suffix(".log")
-        with DeepSeekHarness(
+        with DankeHarness(
             provider="deepseek-official",
             model="smoke-model",
             cwd=str(root),
@@ -1520,7 +1520,7 @@ def smoke_sdk_mcp(base_url: str, executable: Path | None) -> None:
 
 def smoke_sdk_profile_plugin(base_url: str) -> None:
     """Install an external bundle through Python's dsh command and load it in the SDK."""
-    from deepseek_harness import DeepSeekHarness
+    from danke_harness import DankeHarness
 
     with tempfile.TemporaryDirectory(prefix="dsh-sdk-profile-plugin-") as temporary:
         root = Path(temporary).resolve()
@@ -1575,7 +1575,7 @@ def smoke_sdk_profile_plugin(base_url: str) -> None:
         if "dsh-python-blackbox-plugin" not in manifest["dsh"]["profile"]["bundles"]:
             raise AssertionError(f"dsh plugin did not activate the external bundle: {manifest}")
 
-        harness = DeepSeekHarness(
+        harness = DankeHarness(
             provider="deepseek-official",
             model="smoke-model",
             cwd=str(root),
@@ -1610,7 +1610,7 @@ def smoke_sdk_snapshot_mode(
     base_url: str, executable: Path, update_snapshots: bool, mode: Literal["native", "ptc"],
 ) -> None:
     """Drive one supported presentation through the SDK and persistent Session log."""
-    from deepseek_harness import DeepSeekHarness
+    from danke_harness import DankeHarness
 
     with tempfile.TemporaryDirectory(prefix="dsh-sdk-snapshot-") as temporary:
         root = Path(temporary).resolve()
@@ -1642,7 +1642,7 @@ def smoke_sdk_snapshot_mode(
                 "name": str(Path(__file__).resolve().parents[1] / "packages/core/agent-loop/tests/fixtures/serial-created.mjs"),
             }]},
         ])
-        with DeepSeekHarness(
+        with DankeHarness(
             provider="deepseek-official",
             model="smoke-model",
             cwd=str(root),
@@ -1738,7 +1738,7 @@ def smoke_sdk_snapshot_mode(
 
 def smoke_sdk_restart_snapshot(base_url: str, executable: Path, update_snapshots: bool) -> None:
     """Check isolated sessions and explicit history restoration across runtime restarts."""
-    from deepseek_harness import DeepSeekHarness
+    from danke_harness import DankeHarness
 
     with tempfile.TemporaryDirectory(prefix="dsh-sdk-restart-") as temporary:
         root = Path(temporary).resolve()
@@ -1747,8 +1747,8 @@ def smoke_sdk_restart_snapshot(base_url: str, executable: Path, update_snapshots
         patch = write_advanced_profile_patch(root, "restart.patch.yml", sessions)
         first_request = len(MockModelHandler.requests)
 
-        def connect() -> DeepSeekHarness:
-            return DeepSeekHarness(
+        def connect() -> DankeHarness:
+            return DankeHarness(
                 provider="deepseek-official",
                 model="smoke-model",
                 cwd=str(root),
@@ -1845,7 +1845,7 @@ def smoke_sdk_restart_snapshot(base_url: str, executable: Path, update_snapshots
 
 def smoke_sdk_scheduler_recovery(base_url: str, executable: Path, update_snapshots: bool) -> None:
     """Keep a failed tool turn usable through the real Messages serializer and SDK."""
-    from deepseek_harness import DeepSeekHarness
+    from danke_harness import DankeHarness
 
     first_request = len(MockModelHandler.requests)
     with tempfile.TemporaryDirectory(prefix="dsh-sdk-scheduler-recovery-") as temporary:
@@ -1866,8 +1866,8 @@ def smoke_sdk_scheduler_recovery(base_url: str, executable: Path, update_snapsho
             }]},
         ])
 
-        def connect() -> DeepSeekHarness:
-            return DeepSeekHarness(
+        def connect() -> DankeHarness:
+            return DankeHarness(
                 provider="deepseek-official", model="smoke-model", cwd=str(root),
                 dsh_bin=str(executable), dsh_home=str(dsh_home),
                 patches=(str(base_patch), str(patch)),

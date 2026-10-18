@@ -22,19 +22,19 @@
 ::: code-group
 
 ```sh [Linux/macOS]
-git clone https://github.com/deepseek-ai/deepseek-harness.git
-cd deepseek-harness
+git clone https://github.com/DanKE123abc/danke-harness.git
+cd danke-harness
 python -m venv .venv
 . .venv/bin/activate
-python -m pip install deepseek-harness-sdk
+python -m pip install danke-harness-sdk
 ```
 
 ```powershell [Windows PowerShell]
-git clone https://github.com/deepseek-ai/deepseek-harness.git
-Set-Location deepseek-harness
+git clone https://github.com/DanKE123abc/danke-harness.git
+Set-Location danke-harness
 py -3.10 -m venv .venv
 .venv\Scripts\Activate.ps1
-python -m pip install deepseek-harness-sdk
+python -m pip install danke-harness-sdk
 ```
 
 :::
@@ -91,18 +91,18 @@ python python/sdk/examples/minimal.py `
 
 :::
 
-脚本会打印最终 assistant 响应。所选 home 会保存生成的 `sdk-minimal` profile、已安装插件，以及 `sessions/` 下的未压缩 JSONL 会话日志。示例与 SDK 绝不会静默读取 `~/.dsh`。
+脚本会打印最终 assistant 响应。所选 home 会保存生成的 `sdk-minimal` profile、已安装插件，以及 `sessions/` 下的未压缩 JSONL 会话日志。示例与 SDK 绝不会静默读取 `~/.danke-harness`。
 
 ## 在程序中使用 SDK
 
 ```python
 from pathlib import Path
 
-from deepseek_harness import DeepSeekHarness
+from danke_harness import DankeHarness
 
 workspace = Path("/absolute/path/to/disposable-workspace").resolve()
 dsh_home = Path("/absolute/path/to/example-dsh-home").resolve()
-with DeepSeekHarness(
+with DankeHarness(
     provider="deepseek-official",
     model="deepseek-v4-flash",
     max_tokens=49_152,
@@ -160,7 +160,7 @@ dsh plugin --profile sdk-minimal add file:C:/work/my-plugin-bundle
       name: '@deepseek-ai/dsh-tool-str-replace-editor'
 ```
 
-构造 `DeepSeekHarness(profile="sdk-minimal", ...)` 时传入 `patches=("/absolute/path/to/editor.patch.yml",)`，或将 patch 写入 `$DSH_HOME/profiles/sdk-minimal/cordis.patch.yml` 以持久保存配置。下次运行时启动后，模型请求会在默认工具之外包含 `str_replace_editor`。本地文件系统后端以运行时工作目录解析相对路径；与极简 shell 一样，它不会将访问限制在该目录内。该 patch 也适用于标准 `sdk` profile。
+构造 `DankeHarness(profile="sdk-minimal", ...)` 时传入 `patches=("/absolute/path/to/editor.patch.yml",)`，或将 patch 写入 `$DSH_HOME/profiles/sdk-minimal/cordis.patch.yml` 以持久保存配置。下次运行时启动后，模型请求会在默认工具之外包含 `str_replace_editor`。本地文件系统后端以运行时工作目录解析相对路径；与极简 shell 一样，它不会将访问限制在该目录内。该 patch 也适用于标准 `sdk` profile。
 
 ## 理解极简 profile
 

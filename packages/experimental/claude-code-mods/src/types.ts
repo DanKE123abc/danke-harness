@@ -319,7 +319,7 @@ export interface SessionUsage {
 /** The mods API version the bridge reports. */
 export interface SessionVersion {
   version: string
-  engine: 'deepseek-harness'
+  engine: 'danke-harness'
 }
 
 /** `$.ui.ask` options. */

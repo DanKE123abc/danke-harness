@@ -1,6 +1,7 @@
 # Git hooks (lefthook). Keep these local checkpoints fast; CI owns the full
 # repository-wide gate matrix.
-# Install: `node scripts/install-lefthook.mjs` (runs automatically via postinstall).
+# Install (opt-in): `node scripts/install-lefthook.mjs` — no longer run by
+# postinstall.
 
 pre-commit:
   jobs:

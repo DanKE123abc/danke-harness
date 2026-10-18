@@ -13,6 +13,6 @@ Python runtime wheels omit the Office sidecar and authoring interpreters and lib
 
 ## Migration
 
-1. Before processing Office files, call `deepseek_harness_runtime.download_office()`. Before using the bundled authoring environment, call `deepseek_harness_runtime.download_primary_runtime()`. Both reuse completed caches and return absolute paths.
+1. Before processing Office files, call `danke_harness_runtime.download_office()`. Before using the bundled authoring environment, call `danke_harness_runtime.download_primary_runtime()`. Both reuse completed caches and return absolute paths.
 2. For offline deployment, prepare the cache with the matching runtime release on the target platform and copy it to that platform's deployment. Set `DSH_RESOURCE_CACHE` to its absolute root before downloads and SDK startup. See the [runtime reference](../../../../python/sdk-runtime/README.md).
-3. Start the SDK and confirm the required resources are available. `deepseek_harness_runtime.resolve_office_launch_args()` checks the Office CLI paths without downloading. Existing `DSH_PRIMARY_RUNTIME` paths remain supported; an empty value disables the authoring query. Profile patches can independently disable `skill-office`.
+3. Start the SDK and confirm the required resources are available. `danke_harness_runtime.resolve_office_launch_args()` checks the Office CLI paths without downloading. Existing `DSH_PRIMARY_RUNTIME` paths remain supported; an empty value disables the authoring query. Profile patches can independently disable `skill-office`.

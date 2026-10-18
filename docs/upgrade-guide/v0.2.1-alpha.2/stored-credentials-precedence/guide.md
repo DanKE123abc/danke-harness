@@ -9,7 +9,7 @@ English | [中文](guide.zh.md)
 
 ## Change
 
-Earlier releases used an exported environment variable before the `refs` entry with the same name in `$DSH_HOME/.credentials.yaml` (`~/.dsh/.credentials.yaml` by default). This applied to `DEEPSEEK_API_KEY=… dsh`, a shell profile export, a CI secret, and a container `-e` value. While the name was exported, the Models page could not save a key for it.
+Earlier releases used an exported environment variable before the `refs` entry with the same name in `$DSH_HOME/.credentials.yaml` (`~/.danke-harness/.credentials.yaml` by default). This applied to `DEEPSEEK_API_KEY=… dsh`, a shell profile export, a CI secret, and a container `-e` value. While the name was exported, the Models page could not save a key for it.
 
 Now the stored entry wins. The exported variable applies only while the file stores no value for that name, and `$cwd/.env` and `$DSH_HOME/.env` still apply only after both. The Models page can save and replace a key while the name is exported.
 

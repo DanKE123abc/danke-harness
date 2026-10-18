@@ -7,7 +7,7 @@ import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { describe, expect, it, vi } from 'vitest'
 import { resolveExampleLaunch } from '@deepseek-ai/dsh-loader-smoke'
-import { createProcessDeepSeekHarness } from '../../../sdk/client/src/api.ts'
+import { createProcessDankeHarness } from '../../../sdk/client/src/api.ts'
 import { spawnSubprocess } from '../../../subprocess/subprocess-local/src/spawn.ts'
 import { startAcpRun } from '../../subagent-acp/src/run.ts'
 import { externalTestParent } from '../../subagent/tests/external-activation-helpers.ts'
@@ -53,7 +53,7 @@ describe('external tasks with a nested fork', () => {
       const signal = AbortSignal.any([controller.signal, AbortSignal.timeout(45_000)])
       const request = { parent, prompt: [{ type: 'text' as const, text: 'delegate with a fork' }], signal }
       if (profile === 'sdk') {
-        internals.createHarness = options => createProcessDeepSeekHarness({
+        internals.createHarness = options => createProcessDankeHarness({
           command: launch.command, args: launch.args, cwd: root,
           environment: () => ({ ...process.env, ...launch.env }),
           description: 'nested SDK profile', initializeTimeoutMs: 30_000,

@@ -72,7 +72,7 @@ Treat the output as a regenerated, pre-stable reference, not a versioned persist
 <a id="startup-diagnostics"></a>
 ## Startup diagnostics
 
-A required plugin activation failure prints failed plugins and their original stacks, followed by pending plugins and missing services. Required plugins appear first in the pending list. The final `Full diagnostics:` line names a unique `startup-<timestamp>-<uuid>.log` file directly under `$DSH_HOME/logs/` (default `~/.dsh/logs/`). The CLI completes report and stderr writes before explicitly exiting with code 1, even if plugin handles remain open; it does not overwrite earlier reports or delete them automatically.
+A required plugin activation failure prints failed plugins and their original stacks, followed by pending plugins and missing services. Required plugins appear first in the pending list. The final `Full diagnostics:` line names a unique `startup-<timestamp>-<uuid>.log` file directly under `$DSH_HOME/logs/` (default `~/.danke-harness/logs/`). The CLI completes report and stderr writes before explicitly exiting with code 1, even if plugin handles remain open; it does not overwrite earlier reports or delete them automatically.
 
 The report includes DSH and Node versions, platform, profile, root configuration path, every inactive plugin's module and state, original errors, and startup warning/error arguments, including import errors that have no Fiber. Node inspection preserves nested causes, aggregate members, circular references, non-enumerable properties, and Symbol properties with depth, string, and array limits disabled. Custom inspectors are disabled and accessors are described without evaluating them. The collector includes asynchronous failure cleanup and stops when boot settles. It does not collect environment variables or configuration contents independently of logged errors. Raw plugin errors can contain configuration or credential values; the report header warns readers to review it before sharing. Values are not redacted.
 
@@ -97,7 +97,7 @@ dsh plugin --profile <name> remove @deepseek-ai/dsh-subagent-claude-code
 The successful pnpm operation changes the Profile manifest and Bundle list on disk; a running Profile keeps the Bundle set from its current start. Restart that Profile after adding, removing, or updating a Bundle. This startup boundary applies to Bundle membership, while ordinary edits to the Profile or home `cordis.patch.yml` take effect through hot reload. On the next start, each installed Bundle registers only its dormant Host provider; a copied Preset must separately enable the matching tool row for new Agents. The [Codex provider README](../../../packages/subagent/subagent-codex/README.md) and [Claude Code provider README](../../../packages/subagent/subagent-claude-code/README.md) own executable, authentication, payload, and failure details; the [base Bundle reference](../../../packages/bundle/base/README.md) owns the default dependency closure.
 
 ```sh
-dsh plugin --profile tui add github:deepseek-harness/turtle-ui
+dsh plugin --profile tui add github:danke-harness/turtle-ui
 dsh plugin --profile tui remove turtle-ui
 dsh --profile tui
 ```

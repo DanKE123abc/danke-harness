@@ -12,7 +12,7 @@ import { fileURLToPath } from 'node:url'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { ReasoningEffortId } from '@deepseek-ai/dsh-llm'
 import {
-  DeepSeekHarness,
+  DankeHarness,
   HarnessClient,
   HarnessSession,
   JsonRpcResponseError,
@@ -21,7 +21,7 @@ import {
   TransportClosedError,
   type HarnessNotification,
 } from '../src/index.ts'
-import { createProcessDeepSeekHarness, finalResponse, normalizeInput } from '../src/api.ts'
+import { createProcessDankeHarness, finalResponse, normalizeInput } from '../src/api.ts'
 import { createProcessHarnessClient } from '../src/client.ts'
 import type { RuntimeProcessOptions } from '../src/launch.ts'
 
@@ -50,8 +50,8 @@ function processClient(options: RuntimeProcessOptions): HarnessClient {
   return createProcessHarnessClient(options)
 }
 
-function harnessWith(env: Record<string, string> = {}, extra: LaunchOverrides = {}): DeepSeekHarness {
-  const harness = createProcessDeepSeekHarness(fakeLaunch(env, extra))
+function harnessWith(env: Record<string, string> = {}, extra: LaunchOverrides = {}): DankeHarness {
+  const harness = createProcessDankeHarness(fakeLaunch(env, extra))
   cleanups.push(() => harness.close())
   return harness
 }
@@ -62,7 +62,7 @@ async function tempDir(prefix: string): Promise<string> {
   return dir
 }
 
-describe('DeepSeekHarness', () => {
+describe('DankeHarness', () => {
   it('returns a restored handle that can run followups on the same identity', async () => {
     const harness = harnessWith()
     const session = await harness.resumeSession('saved-session')
@@ -138,7 +138,7 @@ describe('DeepSeekHarness', () => {
           async * [Symbol.asyncIterator]() {},
         }),
       },
-    } as unknown as DeepSeekHarness
+    } as unknown as DankeHarness
 
     const result = await new HarnessSession(harness, 'owned').run('go')
 
@@ -230,7 +230,7 @@ describe('DeepSeekHarness', () => {
           async * [Symbol.asyncIterator]() {},
         }),
       },
-    } as unknown as DeepSeekHarness
+    } as unknown as DankeHarness
 
     const result = await new HarnessSession(harness, 'owned').run('go')
 
@@ -293,7 +293,7 @@ describe('DeepSeekHarness', () => {
   it('sends the configured cwd/provider/model/reasoningEffort/maxTokens in the handshake exactly once', async () => {
     const dir = await tempDir('sdk-client-init-')
     const recordFile = join(dir, 'init.jsonl')
-    const harness = createProcessDeepSeekHarness(fakeLaunch({ FAKE_RECORD_INIT: recordFile }), {
+    const harness = createProcessDankeHarness(fakeLaunch({ FAKE_RECORD_INIT: recordFile }), {
       cwd: dir,
       provider: 'custom-provider',
       model: 'custom-model',
@@ -324,7 +324,7 @@ describe('DeepSeekHarness', () => {
     await mkdir(inner)
     const relativeCwd = relative(process.cwd(), inner)
     expect(isAbsolute(relativeCwd)).toBe(false)
-    const harness = createProcessDeepSeekHarness(
+    const harness = createProcessDankeHarness(
       fakeLaunch({ FAKE_RECORD_INIT: recordFile, FAKE_ECHO_CWD_IN_INIT: '1' }, { cwd: relativeCwd }),
     )
     cleanups.push(() => harness.close())
@@ -359,12 +359,12 @@ describe('DeepSeekHarness', () => {
     const initialize = vi.spyOn(HarnessClient.prototype, 'initialize').mockRejectedValue(initializeError)
     const close = vi.spyOn(HarnessClient.prototype, 'close').mockRejectedValue(cleanupError)
     try {
-      const harness = createProcessDeepSeekHarness(fakeLaunch())
+      const harness = createProcessDankeHarness(fakeLaunch())
       const failedClient = harness.client
       const failure = await harness.start().catch((error: unknown) => error)
       expect(failure).toBeInstanceOf(AggregateError)
       expect((failure as AggregateError).errors).toEqual([initializeError, cleanupError])
-      expect((failure as Error).message).toBe('DeepSeek Harness initialization and cleanup failed')
+      expect((failure as Error).message).toBe('Danke Harness initialization and cleanup failed')
       expect(harness.client).toBe(failedClient)
     } finally {
       start.mockRestore()
@@ -380,7 +380,7 @@ describe('DeepSeekHarness', () => {
     const initialize = vi.spyOn(HarnessClient.prototype, 'initialize').mockReturnValue(initializeResult)
     const close = vi.spyOn(HarnessClient.prototype, 'close').mockResolvedValue()
     try {
-      const harness = createProcessDeepSeekHarness(fakeLaunch())
+      const harness = createProcessDankeHarness(fakeLaunch())
       const original = harness.client
       const pending = harness.start()
       await harness.close()
@@ -416,9 +416,9 @@ describe('DeepSeekHarness', () => {
   })
 
   it('supports await using disposal', async () => {
-    let captured: DeepSeekHarness
+    let captured: DankeHarness
     {
-      await using harness = createProcessDeepSeekHarness(fakeLaunch())
+      await using harness = createProcessDankeHarness(fakeLaunch())
       captured = harness
       const result = await harness.run('scoped')
       expect(result.finalResponse).toBe('hello from fake runtime')
@@ -428,7 +428,7 @@ describe('DeepSeekHarness', () => {
   })
 
   it('constructs the public dsh-backed client lazily', async () => {
-    const harness = new DeepSeekHarness()
+    const harness = new DankeHarness()
     expect(harness.client).toBeInstanceOf(HarnessClient)
     await harness.close()
   })
@@ -592,7 +592,7 @@ describe('HarnessClient', () => {
 
     // A bare unbounded request with omitted params sends `{}` on the wire.
     const identity = await client.request('initialize') as { serverInfo: { name: string } }
-    expect(identity.serverInfo.name).toBe('deepseek-harness-sdk-runtime')
+    expect(identity.serverInfo.name).toBe('danke-harness-sdk-runtime')
 
     // Async iteration consumes queued items and then parks.
     const collected: string[] = []

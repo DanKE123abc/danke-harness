@@ -1563,7 +1563,7 @@ describe('PluginManagerPage', () => {
 
   it('shows the subject while installing, folds the pnpm output behind the details, and stops through the Host', () => {
     const subject = { spec: 'dsh-x', status: 'accepted', kind: 'registry', name: 'dsh-x', version: '1.4.2', description: 'A sidebar.', bundle: true, registry: null } as const
-    const run = { jobId: 'j1', command: 'pnpm add dsh-x', cwd: '/home/u/.dsh/profiles/web', output: 'Progress: resolved \x1b[96m1\x1b[39m\n' }
+    const run = { jobId: 'j1', command: 'pnpm add dsh-x', cwd: '/home/u/.danke-harness/profiles/web', output: 'Progress: resolved \x1b[96m1\x1b[39m\n' }
     const { actions, set } = renderTab({ install: { ...IDLE_INSTALL, open: true, spec: 'dsh-x', phase: 'running', subject, runs: [run] } })
     expect(screen.getByRole('status').textContent).toBe(en.installingTitle)
     expect(screen.getByRole('status').parentElement?.querySelector('[data-state="ongoing"]')).not.toBeNull()
@@ -1579,7 +1579,7 @@ describe('PluginManagerPage', () => {
     expect(actions.toggleInstallDetails).toHaveBeenCalledTimes(1)
     set({ install: { ...IDLE_INSTALL, open: true, spec: 'dsh-x', phase: 'running', subject, runs: [run], detailsOpen: true } })
     expect(screen.getByRole('button', { name: en.installDetailsHide }).getAttribute('aria-expanded')).toBe('true')
-    expect(screen.getByText(en.installLocation.replace('{dir}', '/home/u/.dsh/profiles/web'))).toBeTruthy()
+    expect(screen.getByText(en.installLocation.replace('{dir}', '/home/u/.danke-harness/profiles/web'))).toBeTruthy()
     // The run streams as a terminal: its command line, its coloured output so far, the running label.
     expect(screen.getByText('pnpm add dsh-x')).toBeTruthy()
     const terminal = document.querySelector('[data-terminal]') as HTMLElement

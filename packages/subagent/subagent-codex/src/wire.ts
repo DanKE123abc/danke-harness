@@ -268,8 +268,8 @@ export class CodexAppServerWire {
   async initialize(signal: AbortSignal): Promise<void> {
     object(await this.guarded(this.transport.request('initialize', {
       clientInfo: {
-        name: 'deepseek-harness',
-        title: 'DeepSeek Harness',
+        name: 'danke-harness',
+        title: 'Danke Harness',
         version: '0.0.1',
       },
       capabilities: {

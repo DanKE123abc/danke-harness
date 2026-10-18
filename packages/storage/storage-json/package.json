@@ -1,13 +1,13 @@
 {
   "name": "@deepseek-ai/dsh-storage-json",
-  "description": "JSON file KV storage backend for the DeepSeek Harness storage hub",
+  "description": "JSON file KV storage backend for the Danke Harness storage hub",
   "version": "0.2.1-rc.2",
   "publishConfig": {
     "access": "public"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/deepseek-ai/deepseek-harness.git",
+    "url": "git+https://github.com/DanKE123abc/danke-harness.git",
     "directory": "packages/storage/storage-json"
   },
   "type": "module",

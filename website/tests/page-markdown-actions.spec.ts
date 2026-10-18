@@ -107,13 +107,13 @@ describe('page Markdown actions', () => {
 
   it.each(['en-US', 'zh-CN'])('offers a working raw link before hydration in %s', async (lang) => {
     data.lang.value = lang
-    data.site.value = { base: '/deepseek-harness/' }
+    data.site.value = { base: '/danke-harness/' }
     const path = `${lang === 'en-US' ? 'en/' : ''}guide/quickstart.md`
     data.frontmatter.value = { rawMarkdownPath: path }
     host.innerHTML = await renderToString(createSSRApp(Theme.Layout))
     expect(queryAllByRole(host, 'button')).toHaveLength(0)
     const link = getByRole(host, 'link')
-    expect(link.getAttribute('href')).toBe(`/deepseek-harness/${path}`)
+    expect(link.getAttribute('href')).toBe(`/danke-harness/${path}`)
     expect(link.getAttribute('target')).toBe('_blank')
     expect(link.getAttribute('aria-label')).toBe(lang === 'en-US'
       ? 'View as Markdown (opens in a new tab)' : '以 Markdown 格式查看（在新标签页打开）')
@@ -254,7 +254,7 @@ describe('page Markdown actions', () => {
     }
   })
 
-  it.each(['/', '/deepseek-harness/'])('uses the manifest index route under base %s, independent of the visible URL', async (base) => {
+  it.each(['/', '/danke-harness/'])('uses the manifest index route under base %s, independent of the visible URL', async (base) => {
     data.site.value = { base }
     data.frontmatter.value = { rawMarkdownPath: 'en/reference/index.md' }
     route.path = `${base}en/reference/index.html?from=nav#api`

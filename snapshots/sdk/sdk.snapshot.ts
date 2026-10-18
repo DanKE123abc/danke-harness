@@ -55,7 +55,7 @@ import {
   type WorkspaceSnapshotEntry,
 } from '@deepseek-ai/dsh-session-snapshot'
 import {
-  DeepSeekHarness,
+  DankeHarness,
   type HarnessNotification,
   type NotificationSubscription,
   type RunResult,
@@ -83,7 +83,7 @@ const sessionWriteMode = recording ? 'record' : refreshing ? 'refresh' : 'replay
 const RUNTIME_WORKSPACE_ENTRIES = [
   '.agents',
   '.child-dsh',
-  '.dsh',
+  '.danke-harness',
   '.replay-fixtures',
   '.snapshot-patches',
 ] as const
@@ -581,7 +581,7 @@ async function runScenario(scenario: CorpusScenario): Promise<{
     workspacePrefix += '-'.repeat(paddingLength)
   }
   const cwd = await realpath(await mkdtemp(join(workspaceParent, workspacePrefix)))
-  const dshHome = join(cwd, '.dsh')
+  const dshHome = join(cwd, '.danke-harness')
   const sessionsRoot = join(dshHome, 'sessions')
   const replayFixtures = recording ? [] : await hydrateReplayFixtures(scenario, cwd)
   const fixtureContents = await Promise.all((await fixtureFiles(scenario)).map(file => readFile(file, 'utf8')))
@@ -646,7 +646,7 @@ async function runScenario(scenario: CorpusScenario): Promise<{
     ...resumeReplayFile === undefined ? {} : { DSH_SNAPSHOT_OVERRIDE: resumeReplayFile },
   }
 
-  const createHarness = (): DeepSeekHarness => new DeepSeekHarness({
+  const createHarness = (): DankeHarness => new DankeHarness({
     profile: scenario.manifest.profile,
     patches,
     dshHome,

@@ -74,7 +74,7 @@ dsh --profile web --patch ./extra.yml --dump-config
 <a id="startup-diagnostics"></a>
 ## 启动诊断
 
-必需插件激活失败时，CLI 先输出失败插件及其原始堆栈，再列出等待中的插件和缺失服务。等待列表中的必需插件排在前面。末尾的 `Full diagnostics:` 行指向直接位于 `$DSH_HOME/logs/`（默认 `~/.dsh/logs/`）下的唯一 `startup-<timestamp>-<uuid>.log` 文件。CLI 完成报告和 stderr 写入后会明确以退出码 1 结束，即使插件仍有打开的句柄；不会覆盖以前的报告，也不会自动删除它们。
+必需插件激活失败时，CLI 先输出失败插件及其原始堆栈，再列出等待中的插件和缺失服务。等待列表中的必需插件排在前面。末尾的 `Full diagnostics:` 行指向直接位于 `$DSH_HOME/logs/`（默认 `~/.danke-harness/logs/`）下的唯一 `startup-<timestamp>-<uuid>.log` 文件。CLI 完成报告和 stderr 写入后会明确以退出码 1 结束，即使插件仍有打开的句柄；不会覆盖以前的报告，也不会自动删除它们。
 
 报告包含 DSH 和 Node 版本、平台、profile、根配置路径、每个未激活插件的模块与状态、原始错误，以及启动期间的警告和错误参数，包括尚无 Fiber 的导入错误。Node 检查输出保留嵌套原因、聚合成员、循环引用、不可枚举属性和 Symbol 属性，并关闭深度、字符串及数组长度限制。自定义检查函数被禁用，访问器只描述而不求值。收集器包含失败后的异步清理日志，并在启动结算后停止。它不会独立于已记录错误额外收集环境变量或配置内容。插件原始错误可能包含配置或凭据值；报告开头会提醒读者在分享前检查内容。报告不脱敏。
 
@@ -99,7 +99,7 @@ dsh plugin --profile <name> remove @deepseek-ai/dsh-subagent-claude-code
 pnpm 操作成功后会改变磁盘上的 Profile manifest 与组合包列表；正在运行的 Profile 会保留本次启动时的组合包集合。添加、移除或更新组合包后须重启该 Profile。这个启动边界只适用于组合包成员变化，Profile 或 home 中普通 `cordis.patch.yml` 的编辑通过热重载生效。下一次启动时，每个已安装组合包只注册自己的休眠 Host 提供方；还须在复制出的 Preset 中单独启用对应工具行，新 Agent 才能看到该工具。[Codex provider README](../../../packages/subagent/subagent-codex/README.zh.md) 与 [Claude Code provider README](../../../packages/subagent/subagent-claude-code/README.zh.md) 负责可执行文件、身份验证、载荷与失败细节；[base 组合包参考](../../../packages/bundle/base/README.zh.md) 负责默认依赖闭包。
 
 ```sh
-dsh plugin --profile tui add github:deepseek-harness/turtle-ui
+dsh plugin --profile tui add github:danke-harness/turtle-ui
 dsh plugin --profile tui remove turtle-ui
 dsh --profile tui
 ```

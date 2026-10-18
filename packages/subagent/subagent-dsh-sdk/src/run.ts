@@ -1,5 +1,5 @@
 /**
- * Fresh-process SDK subagent client. Drives one child DeepSeek Harness
+ * Fresh-process SDK subagent client. Drives one child Danke Harness
  * runtime over stdio JSON-RPC through `@deepseek-ai/dsh-sdk-client` and owns
  * cancellation and quiescent disposal. It publishes after the child
  * handshake, maps child failures to stop reasons, and tears down to
@@ -13,8 +13,8 @@
 import { randomUUID } from 'node:crypto'
 import { brandString } from '@deepseek-ai/dsh-brand'
 import {
-  DeepSeekHarness,
-  type DeepSeekHarnessOptions,
+  DankeHarness,
+  type DankeHarnessOptions,
   JsonRpcResponseError,
   SdkProtocolError,
   TransportClosedError,
@@ -113,8 +113,8 @@ class SdkRunFailure extends Error {
 }
 
 /** Runtime constructor seam replaced only by package-local fake-runtime tests. */
-export const internals: { createHarness(options: DeepSeekHarnessOptions): DeepSeekHarness } = {
-  createHarness: options => new DeepSeekHarness(options),
+export const internals: { createHarness(options: DankeHarnessOptions): DankeHarness } = {
+  createHarness: options => new DankeHarness(options),
 }
 
 /**

@@ -7,7 +7,7 @@ import argparse
 import os
 from pathlib import Path
 
-from deepseek_harness import DeepSeekHarness
+from danke_harness import DankeHarness
 
 
 def main() -> None:
@@ -32,7 +32,7 @@ def main() -> None:
 
     workspace = args.workspace.resolve()
     dsh_home = args.dsh_home.resolve()
-    with DeepSeekHarness(
+    with DankeHarness(
         provider=args.provider,
         model=args.model,
         max_tokens=args.max_tokens,

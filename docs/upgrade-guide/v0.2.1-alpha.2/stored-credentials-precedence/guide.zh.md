@@ -9,7 +9,7 @@ description: "挂载存储时，已保存凭据现在优先于环境后备；随
 
 ## 变更
 
-早期版本会先使用导出的环境变量，再使用 `$DSH_HOME/.credentials.yaml`（默认为 `~/.dsh/.credentials.yaml`）中同名的 `refs` 条目。这适用于 `DEEPSEEK_API_KEY=… dsh`、shell 配置文件中的导出、CI 机密和容器 `-e` 值。该名字被导出期间，Models 页面无法为其保存密钥。
+早期版本会先使用导出的环境变量，再使用 `$DSH_HOME/.credentials.yaml`（默认为 `~/.danke-harness/.credentials.yaml`）中同名的 `refs` 条目。这适用于 `DEEPSEEK_API_KEY=… dsh`、shell 配置文件中的导出、CI 机密和容器 `-e` 值。该名字被导出期间，Models 页面无法为其保存密钥。
 
 现在存储的条目优先。只有当文件没有为该名字存储值时，导出的变量才会生效；`$cwd/.env` 和 `$DSH_HOME/.env` 仍排在两者之后。即使该名字已被导出，Models 页面也可以保存和替换密钥。
 

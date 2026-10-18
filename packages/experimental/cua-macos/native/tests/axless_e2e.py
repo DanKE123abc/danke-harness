@@ -41,7 +41,7 @@ def main():
                 contents = root / (name + '.app') / 'Contents'
                 (contents / 'MacOS').mkdir(parents=True)
                 (contents / 'Info.plist').write_bytes(plistlib.dumps({
-                    'CFBundleIdentifier': 'org.deepseek-harness.cua.' + root.name + '.' + name,
+                    'CFBundleIdentifier': 'org.danke-harness.cua.' + root.name + '.' + name,
                     'CFBundleExecutable': 'fixture', 'CFBundleName': name, 'CFBundlePackageType': 'APPL',
                     'DSHFixtureStatePath': str(state_file),
                 }))

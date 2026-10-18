@@ -66,7 +66,7 @@ def validate_downloads(root: Path | zipfile.Path, target: str) -> dict:
 def office_launch_args(root: Path, target: str) -> tuple[str, str]:
     """Require an explicitly installed sidecar, including its independent Node interpreter."""
     metadata = validate_downloads(root, target)
-    cache = Path(os.environ.get("DSH_RESOURCE_CACHE", str(Path.home() / ".cache/deepseek-harness/resources")))
+    cache = Path(os.environ.get("DSH_RESOURCE_CACHE", str(Path.home() / ".cache/danke-harness/resources")))
     if not cache.is_absolute():
         raise ValueError("DSH_RESOURCE_CACHE must be an absolute directory")
     office = Path(os.environ.get("DSH_OFFICE_SIDECAR", str(cache / metadata["identity"] / "office")))
@@ -75,14 +75,14 @@ def office_launch_args(root: Path, target: str) -> tuple[str, str]:
     if "DSH_OFFICE_SIDECAR" not in os.environ:
         complete = office / "complete"
         if not complete.is_file():
-            raise FileNotFoundError(f"Office download is incomplete: {office}. Call deepseek_harness_runtime.download_office() first.")
+            raise FileNotFoundError(f"Office download is incomplete: {office}. Call danke_harness_runtime.download_office() first.")
         if complete.read_text(encoding="utf-8") != metadata["identity"]:
             raise ValueError(f"Office cache identity mismatch: {office}")
     node = office / "node/bin" / ("node.exe" if target == "win-x64" else "node")
     cli = office / "node_modules/@deepseek-ai/libreoffice-kit/lib/cli.js"
     for path in (node, cli):
         if not path.is_file():
-            raise FileNotFoundError(f"Office resource is missing: {path}. Call deepseek_harness_runtime.download_office() first.")
+            raise FileNotFoundError(f"Office resource is missing: {path}. Call danke_harness_runtime.download_office() first.")
     return str(node), str(cli)
 
 

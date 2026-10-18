@@ -3,23 +3,23 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write packages/sdk/client/README.md
 /:
-  en: 09cb25e4bcf56851
-  zh: a0a5913941d23eff
+  en: c107247af16e0f33
+  zh: ea15d52510be283e
 /deepseek-ai-dsh-sdk-client:
   en: b786affe03adf63c
   zh: aacb5d4af10ca477
 /deepseek-ai-dsh-sdk-client/summary:
-  en: 05b18f61ad4c2f54
-  zh: 19f88d7bcd2cca0f
+  en: d4b7c02169cf9c22
+  zh: 7880473e36a84020
 /deepseek-ai-dsh-sdk-client/table-of-contents:
   en: d152484eb41ac6b4
   zh: 09388d293f9be9cb
 /deepseek-ai-dsh-sdk-client/use-this-package:
-  en: ff421f12a5db28a4
-  zh: 2ca9b71a3458b5e0
-/deepseek-ai-dsh-sdk-client/use-this-package/running-agent-turns-with-deepseekharness:
-  en: 01c58dddd7e62de2
-  zh: 6dbd46e244f3f135
+  en: ffe041db0074d480
+  zh: abd403088e46d90f
+/deepseek-ai-dsh-sdk-client/use-this-package/running-agent-turns-with-dankeharness:
+  en: fa6935eb3ce7530b
+  zh: d7bedf072c275df9
 /deepseek-ai-dsh-sdk-client/use-this-package/lower-level-control-with-harnessclient:
   en: 8778901987da6e59
   zh: 3d09fe4b0b393a15
@@ -27,11 +27,11 @@
   en: 8773f50c51da85f0
   zh: 4649ebc69357deb0
 /deepseek-ai-dsh-sdk-client/understand-the-implementation/design-concept:
-  en: 6632c06d819233cc
-  zh: 207d55d8217ec6b1
+  en: 79da6e0d371b4d23
+  zh: e0e2981f3b731a33
 /deepseek-ai-dsh-sdk-client/understand-the-implementation/source-map:
-  en: a3c7978a80f5aba3
-  zh: fdc4dfdafd2eccfa
+  en: f607f6bd1d9c388d
+  zh: da4b5cc3d96d3522
 /deepseek-ai-dsh-sdk-client/understand-the-implementation/owned-activity-flow:
   en: 94a42babac5f1c7d
   zh: df9e42ed02f7d002

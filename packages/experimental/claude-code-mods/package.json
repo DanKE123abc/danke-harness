@@ -1,13 +1,13 @@
 {
   "name": "@deepseek-ai/dsh-experimental-claude-code-mods",
-  "description": "Experimental bridge: load Claude Code mods (hooks modules) and run their hook chains on DeepSeek Harness extension points",
+  "description": "Experimental bridge: load Claude Code mods (hooks modules) and run their hook chains on Danke Harness extension points",
   "version": "0.2.1-rc.2",
   "publishConfig": {
     "access": "public"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/deepseek-ai/deepseek-harness.git",
+    "url": "git+https://github.com/DanKE123abc/danke-harness.git",
     "directory": "packages/experimental/claude-code-mods"
   },
   "type": "module",

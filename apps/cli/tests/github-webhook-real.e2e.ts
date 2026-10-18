@@ -328,10 +328,10 @@ async function sendGitHubDelivery(origin: string): Promise<Response> {
   const body = JSON.stringify({
     action: 'ready_for_review',
     number: 4242,
-    repository: { full_name: 'deepseek-ai/deepseek-harness' },
+    repository: { full_name: 'DanKE123abc/danke-harness' },
     pull_request: {
       title: 'Real CLI webhook e2e',
-      html_url: 'https://github.com/deepseek-ai/deepseek-harness/pull/4242',
+      html_url: 'https://github.com/DanKE123abc/danke-harness/pull/4242',
       draft: false,
       user: { login: 'octocat' },
       base: { ref: 'master', sha: 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa' },
@@ -387,7 +387,7 @@ describe.skipIf(!process.env.DEEPSEEK_API_KEY)('GitHub webhook through the real 
         DSH_GITHUB_E2E_WORKSPACE: workspacePath,
         DSH_GITHUB_WEBHOOK_PORT: String(webhookPort),
         DSH_GITHUB_WEBHOOK_SECRET: SECRET,
-        DSH_HOME: join(root, '.dsh'),
+        DSH_HOME: join(root, '.danke-harness'),
         DSH_TELEMETRY_DISABLED: '1',
       },
       stdio: ['ignore', 'pipe', 'pipe'],

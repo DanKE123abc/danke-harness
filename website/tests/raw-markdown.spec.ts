@@ -20,7 +20,7 @@ beforeEach(() => {
 
 describe('raw Markdown development middleware', () => {
   it.each([undefined, 'document', 'empty'])('serves an explicit raw fetch with destination %s', (destination) => {
-    const { res, next } = request('/deepseek-harness/en/reference/index.md?dsh-raw=1#section', destination, 'GET', '/deepseek-harness/')
+    const { res, next } = request('/danke-harness/en/reference/index.md?dsh-raw=1#section', destination, 'GET', '/danke-harness/')
     expect(rawMarkdownRoute).toHaveBeenCalledWith('en/reference/index.md')
     expect(res.setHeader).toHaveBeenCalledWith('Content-Type', 'text/markdown; charset=utf-8')
     expect(res.end).toHaveBeenCalledWith('# Reference\n')
@@ -64,7 +64,7 @@ describe('raw Markdown development middleware', () => {
   it('delegates missing paths, unrelated routes, other bases and non-read methods', () => {
     for (const { next } of [
       request(undefined), request('/missing.md'), request('/guide.html'),
-      request('/en/reference/index.md?dsh-raw=1', 'empty', 'GET', '/deepseek-harness/'),
+      request('/en/reference/index.md?dsh-raw=1', 'empty', 'GET', '/danke-harness/'),
       request('/en/reference/index.md?dsh-raw=1', 'empty', 'POST'),
     ]) expect(next).toHaveBeenCalledExactlyOnceWith()
   })

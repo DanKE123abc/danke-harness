@@ -22,19 +22,19 @@ This tutorial installs the published Python SDK, runs the shipped standalone min
 ::: code-group
 
 ```sh [Linux/macOS]
-git clone https://github.com/deepseek-ai/deepseek-harness.git
-cd deepseek-harness
+git clone https://github.com/DanKE123abc/danke-harness.git
+cd danke-harness
 python -m venv .venv
 . .venv/bin/activate
-python -m pip install deepseek-harness-sdk
+python -m pip install danke-harness-sdk
 ```
 
 ```powershell [Windows PowerShell]
-git clone https://github.com/deepseek-ai/deepseek-harness.git
-Set-Location deepseek-harness
+git clone https://github.com/DanKE123abc/danke-harness.git
+Set-Location danke-harness
 py -3.10 -m venv .venv
 .venv\Scripts\Activate.ps1
-python -m pip install deepseek-harness-sdk
+python -m pip install danke-harness-sdk
 ```
 
 :::
@@ -91,18 +91,18 @@ python python/sdk/examples/minimal.py `
 
 :::
 
-The script prints the final assistant response. The selected home receives the generated `sdk-minimal` profile, installed plugins, and uncompressed JSONL session logs under `sessions/`. The example and SDK never silently read `~/.dsh`.
+The script prints the final assistant response. The selected home receives the generated `sdk-minimal` profile, installed plugins, and uncompressed JSONL session logs under `sessions/`. The example and SDK never silently read `~/.danke-harness`.
 
 ## Use the SDK in your program
 
 ```python
 from pathlib import Path
 
-from deepseek_harness import DeepSeekHarness
+from danke_harness import DankeHarness
 
 workspace = Path("/absolute/path/to/disposable-workspace").resolve()
 dsh_home = Path("/absolute/path/to/example-dsh-home").resolve()
-with DeepSeekHarness(
+with DankeHarness(
     provider="deepseek-official",
     model="deepseek-v4-flash",
     max_tokens=49_152,
@@ -160,7 +160,7 @@ The bundled runtime includes `str_replace_editor`, but `sdk-minimal` omits it fr
       name: '@deepseek-ai/dsh-tool-str-replace-editor'
 ```
 
-Pass `patches=("/absolute/path/to/editor.patch.yml",)` when constructing `DeepSeekHarness(profile="sdk-minimal", ...)`, or put the patch in `$DSH_HOME/profiles/sdk-minimal/cordis.patch.yml` for persistent configuration. On the next runtime launch, model requests include `str_replace_editor` beside the default tools. The local filesystem provider uses the runtime working directory for relative paths; like the minimal shell, it does not confine access to that directory. The same patch works with the standard `sdk` profile.
+Pass `patches=("/absolute/path/to/editor.patch.yml",)` when constructing `DankeHarness(profile="sdk-minimal", ...)`, or put the patch in `$DSH_HOME/profiles/sdk-minimal/cordis.patch.yml` for persistent configuration. On the next runtime launch, model requests include `str_replace_editor` beside the default tools. The local filesystem provider uses the runtime working directory for relative paths; like the minimal shell, it does not confine access to that directory. The same patch works with the standard `sdk` profile.
 
 ## Understand the minimal profile
 
