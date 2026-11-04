@@ -12,11 +12,7 @@ import type {} from '@deepseek-ai/dsh-api-remotes/client'
 import type { AccountView, AccountDetails } from '@deepseek-ai/dsh-deepseek-account/types'
 import type { OnboardingChange } from './onboarding-contract.ts'
 import type { PlatformBridge } from './PlatformOverlay.tsx'
-import { ContactConfig, CONTACT_CONFIG_GLOBAL } from '../contact-config.ts'
-import { contactUrl } from './contact-url.ts'
-import { authorizeUrlWithTheme } from './authorize-url.ts'
-import { BrowserLogin } from './browser-login.ts'
-import { AccountOnboarding } from './AccountOnboarding.tsx'
+import { BonusNoticeConfig, BONUS_NOTICE_CONFIG_GLOBAL } from '../bonus-config.ts'
 import { AccountPlatformHost, type AccountPlatformHostInjected } from './AccountPlatformHost.tsx'
 import { AccountMenu } from './AccountMenu.tsx'
 import { createPlatformPages, type PlatformPages } from './platform-pages.ts'
@@ -47,14 +43,11 @@ export function apply(ctx: Context): void {
   const desktop = 'dshDesktop' in globalThis
   ctx.effect(() => ctx.locale.register('settings.account', { en, zh }), 'account: dictionaries')
   const t = ctx.locale.bind('settings.account')
-  const page = globalThis as Partial<Record<typeof CONTACT_CONFIG_GLOBAL, unknown>>
-  const config = ContactConfig(page[CONTACT_CONFIG_GLOBAL] ?? {})
+  const page = globalThis as Partial<Record<typeof BONUS_NOTICE_CONFIG_GLOBAL, unknown>>
+  const config = BonusNoticeConfig(page[BONUS_NOTICE_CONFIG_GLOBAL] ?? {})
   let snapshot: AccountSnapshot = {
-    view: undefined, details: undefined, avatar: undefined, failed: false, loginVisible: false, desktopOnboardingVisible: desktop,
+    view: undefined, details: undefined, avatar: undefined, failed: false, desktopOnboardingVisible: desktop,
   }
-  // Desktop main opens the authorization page natively; a plain browser opens it in a tab it owns.
-  const browser = new BrowserLogin(url => authorizeUrlWithTheme(url, ctx.theme.getTheme().active.colorScheme))
-  ctx.effect(() => () => { browser.dispose() }, 'account: pending browser window')
   const listeners = new Set<() => void>()
   const publish = (value: AccountSnapshot) => { snapshot = value; for (const listener of listeners) listener() }
   const avatar = new AccountAvatarLoader((value) => { publish({ ...snapshot, avatar: value }) })
@@ -131,7 +124,6 @@ export function apply(ctx: Context): void {
       const { notices: previousNotices, ...previous } = snapshot
       publish({ ...previous, view: frame.value, details: undefined, avatar: undefined, failed: false,
         ...(frame.value.status === 'credential-stored' && previousNotices ? { notices: previousNotices } : {}) })
-      browser.update(frame.value)
       frame.accept()
       if (frame.value.status === 'credential-stored') notices.begin()
       else notices.end()
@@ -177,37 +169,6 @@ export function apply(ctx: Context): void {
     subscribeModelSignInRequired: listener => ctx.remote.$on('deepseek-account/model-sign-in-required', listener),
     ...nativePlatform === undefined ? {} : { openPlatformPage: platformPageOpener(refreshAccount) },
     refreshAccount,
-    contactUs() {
-      // Sample the account, build and environment before awaiting native information, so
-      // a profile the read outlasts cannot replace the UID this click reported.
-      const profile = snapshot.details?.profile
-      const context = {
-        uid: profile?.status === 'ready' ? profile.value.id : null,
-        version: process.env.DSH_CLIENT_VERSION,
-        width: window.screen.width, height: window.screen.height, pixelRatio: window.devicePixelRatio,
-      }
-      const openForm = (deviceInfo: string): void => {
-        window.open(contactUrl(config, { ...context, deviceInfo }), '_blank', 'noopener,noreferrer')
-      }
-      const readDeviceInfo = (globalThis as typeof globalThis & {
-        dshDesktop?: { deviceInfo?: () => Promise<string> }
-      }).dshDesktop?.deviceInfo
-      if (readDeviceInfo === undefined) {
-        // A plain browser, or a Desktop bridge without the optional reader, reports the renderer user agent.
-        openForm(navigator.userAgent)
-        return
-      }
-      void (async () => {
-        let deviceInfo = ''
-        try { deviceInfo = await readDeviceInfo() }
-        catch (_error) {
-          // Native information is optional; the questionnaire opens without it.
-        }
-        openForm(deviceInfo)
-      })()
-    },
-    showLogin(visible) { publish({ ...snapshot, loginVisible: visible }) },
-    setOnboarding(active) { publish({ ...snapshot, onboarding: active }) },
     bonusNoticeShown(orderId) { notices.shown(orderId) },
     bonusNoticeDismissed(orderId) { notices.dismiss(orderId) },
     hooks: {
@@ -220,27 +181,6 @@ export function apply(ctx: Context): void {
         subscribe: listener => ctx.on('theme/change', listener),
       },
     },
-    async start() {
-      publish({ ...snapshot, loginVisible: true, loginFailed: false })
-      const transport = (globalThis as typeof globalThis & {
-        __DSH_TRANSPORT__?: { streamBaseUrl?: string }
-      }).__DSH_TRANSPORT__
-      const request = async () => {
-        const result = await ctx.remote.account.startSignIn(client(),
-          desktop && transport?.streamBaseUrl !== undefined ? new URL(transport.streamBaseUrl).origin : window.location.origin,
-          desktop ? 'desktop' : 'web')
-        if (!result.ok) throw new Error('account start failed')
-        return result.value
-      }
-      try {
-        if (desktop) await request()
-        else await browser.start(request, () => snapshot.view)
-      } catch (error) {
-        publish({ ...snapshot, loginFailed: true })
-        throw error
-      }
-    },
-    async cancel(id) { const result = await ctx.remote.account.cancelSignIn(id); if (!result.ok) throw new Error('account cancel failed') },
     async hasRunningAccountTasks() {
       const result = await ctx.remote.account.hasRunningAccountTasks()
       if (!result.ok) throw new Error('account task query failed')
@@ -287,9 +227,6 @@ export function apply(ctx: Context): void {
       }),
     }, DesktopOnboardingEntry))
   }
-  ctx.slots.inject('settings.models.sign-in', () => ctx.slots.register({
-    name: 'settings.models.sign-in', locale: 'settings.account', inject: () => operations,
-  }, AccountOnboarding))
   ctx.slots.inject('shell.quota-notice', () => ctx.slots.register({
     name: 'shell.quota-notice', locale: 'settings.account',
     select: owner => owner.code === 'ACCOUNT_QUOTA' ? owner : null,
