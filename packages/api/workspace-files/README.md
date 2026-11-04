@@ -9,7 +9,7 @@ English | [中文](README.zh.md)
 
 ## Summary
 
-Use this package to preview files readable through a Session's filesystem from the web client. It reads UTF-8 text by page, reads bounded byte windows or complete files, resolves related files from a base file's directory, and reports file metadata. Follow changes to a file or a directory's direct entries. File reads and watches may target paths outside the workspace; directory listing and watches remain workspace-scoped. The service now also writes one complete UTF-8 file through `write`, creates directories through `mkdir`, removes entries through `remove`, moves or renames entries through `rename`, and searches file names through `search`; writes may create or replace a file, while the other mutations stay inside the Session's workspace root.
+Use this package to preview files readable through a Session's filesystem from the web client. It reads UTF-8 text by page, reads bounded byte windows or complete files, resolves related files from a base file's directory, and reports file metadata. Follow changes to a file or a directory's direct entries. File reads and watches may target paths outside the workspace; directory listing and watches remain workspace-scoped. The service now also writes one complete UTF-8 file through `write`, creates directories through `mkdir`, removes entries through `remove`, moves or renames entries through `rename`, searches file names through `search`, and reads Git working-tree status through `gitStatus`; writes may create or replace a file, while the other mutations stay inside the Session's workspace root.
 
 ## Table of Contents
 

@@ -76,6 +76,7 @@ interface TreeContext {
   readonly onOpen: (path: string) => void
   readonly onDelete: (path: string) => void
   readonly onRename: (path: string) => void
+  readonly gitChanges: Readonly<Record<string, string>>
   readonly t: TranslateNS<'sidebarFiles'>
 }
 
@@ -100,6 +101,16 @@ function Entry({ parent, entry, tree }: { parent: string; entry: WorkspaceDirect
         <button type="button" className={css.row} onClick={() => { tree.onOpen(path) }}>
           <FileTypeIcon kind={classifyFileType(entry.name)} size={16} className={css.fileIcon} />
           <span className={css.name}>{entry.name}</span>
+          {(() => {
+            const relativePath = path.slice(tree.state.root.length).replace(/^[\\/]+/, '')
+            const status = tree.gitChanges[relativePath]
+            if (status === undefined) return null
+            return (
+              <span className={css.gitStatus} data-files-git-status={status}>
+                {status[0]?.toUpperCase()}
+              </span>
+            )
+          })()}
         </button>
         <button type="button" className={css.tool} aria-label={tree.t('delete')} data-files-delete onClick={() => { tree.onDelete(path) }}>
           ×
@@ -147,7 +158,7 @@ function Level({ path, tree }: { path: string; tree: TreeContext }): ReactNode {
 /** The file tree's body: the workspace root and whatever the reader has opened under it. */
 export function FilesBody({
   useTabInfo, sessionId, useSessions, useStore, actions,
-  start, refresh, setAutoRefresh, toggle, removeEntry, createDirectory, renameEntry, searchFiles, t, renderSlot,
+  start, refresh, setAutoRefresh, toggle, removeEntry, createDirectory, renameEntry, searchFiles, gitStatus, t, renderSlot,
 }: FilesBodyProps): ReactNode {
   const { tab } = useTabInfo()
   useEffect(() => tab.actions.bindCommands({ refresh: () => { refresh(tab.id) } }), [tab.actions, tab.id, refresh])
@@ -156,6 +167,7 @@ export function FilesBody({
   const state = useStore(store => store.byTab[tab.id])
   const [query, setQuery] = useState('')
   const [results, setResults] = useState<{ matches: readonly string[]; dirs: readonly string[]; truncated: boolean } | null>(null)
+  const [gitChanges, setGitChanges] = useState<Readonly<Record<string, string>>>({})
   useEffect(() => {
     if (query.trim() === '') {
       setResults(null)
@@ -176,6 +188,23 @@ export function FilesBody({
       controller.abort()
     }
   }, [query, searchFiles, tab.id])
+  useEffect(() => {
+    if (gitStatus === undefined || state?.root === undefined) return
+    const controller = new AbortController()
+    let cancelled = false
+    void gitStatus(tab.id, controller.signal).then((result) => {
+      if (cancelled) return
+      const next: Record<string, string> = {}
+      for (const change of result.changes) next[change.path] = change.status
+      setGitChanges(next)
+    }).catch(() => {
+      if (!cancelled) setGitChanges({})
+    })
+    return () => {
+      cancelled = true
+      controller.abort()
+    }
+  }, [gitStatus, tab.id, state?.root])
   const bodyRef = useRef<HTMLDivElement>(null)
   const scrollTopRef = useRef(0)
   // Come back where the reader was: loaded levels outlive the body in the
@@ -226,6 +255,7 @@ export function FilesBody({
       const next = `${path.slice(0, path.lastIndexOf('/') + 1)}${name.trim()}`
       void renameEntry(tab.id, path, next, signal).then(() => { refresh(tab.id) }).catch(() => {})
     },
+    gitChanges,
     t,
   }
   const onCreateFolder = (): void => {

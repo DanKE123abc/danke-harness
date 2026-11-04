@@ -151,6 +151,10 @@ export interface FilesInjected {
     query: string,
     signal: AbortSignal,
   ) => Promise<{ matches: readonly string[]; dirs: readonly string[]; truncated: boolean }>
+  readonly gitStatus?: (
+    tabId: TabId,
+    signal: AbortSignal,
+  ) => Promise<{ changes: readonly { path: string; status: string; staged: boolean }[]; branch: string | null }>
 }
 
 /**
@@ -248,6 +252,12 @@ export function filesFace(
         const result = await remote.workspaceFiles.search(sessionId, query, { maxMatches: 50, maxVisited: 10000 }, signal)
         if (!result.ok) return { matches: [], dirs: [], truncated: false }
         return { matches: result.value.matches, dirs: result.value.dirs, truncated: result.value.truncated }
+      },
+      gitStatus: async (_tabId, signal) => {
+        if (remote === undefined) return { changes: [], branch: null }
+        const result = await remote.workspaceFiles.gitStatus(sessionId, signal)
+        if (!result.ok) return { changes: [], branch: null }
+        return { changes: result.value.changes, branch: result.value.branch }
       },
     }
   }

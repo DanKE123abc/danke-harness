@@ -21,6 +21,8 @@
 
 import { posix, win32 } from 'node:path'
 import { mkdir as makeDir, readdir, rename as renamePath, rm } from 'node:fs/promises'
+import { execFile } from 'node:child_process'
+import { promisify } from 'node:util'
 import type { Context } from '@deepseek-ai/cordis'
 import z from '@deepseek-ai/schemastery'
 import type {} from '@deepseek-ai/dsh-fs'
@@ -45,6 +47,8 @@ import type {
   WorkspaceFileWriteOptions,
   WorkspaceFileSearchResult,
   WorkspaceFileSearchOptions,
+  WorkspaceFileGitStatus,
+  WorkspaceFileGitChange,
 } from './types.ts'
 
 export type * from './types.ts'
@@ -512,6 +516,46 @@ export class WorkspaceFiles extends TypertRemoteService {
 
     await walk(rootPath, '')
     return { matches, dirs, truncated }
+  }
+
+  /**
+   * Read the Git working-tree status of the Session's workspace.
+   * @param workspaceFileScope - header-derived workspace root for the Session identity on the wire.
+   * @param signal - caller cancellation.
+   * @returns changed paths and the current branch when the workspace is a Git repository.
+   */
+  @Remote
+  async gitStatus(workspaceFileScope: WorkspaceFileScope, signal: AbortSignal): Promise<WorkspaceFileGitStatus> {
+    const { workspaceRoot } = workspaceFileScope
+    const exec = promisify(execFile)
+    let branch: string | null = null
+    try {
+      const branchResult = await exec('git', ['rev-parse', '--abbrev-ref', 'HEAD'], { cwd: workspaceRoot, signal })
+      branch = branchResult.stdout.trim() || null
+    } catch {
+      branch = null
+    }
+    let changes: WorkspaceFileGitChange[] = []
+    try {
+      const statusResult = await exec('git', ['status', '--porcelain=v1', '-z'], { cwd: workspaceRoot, signal })
+      const entries = statusResult.stdout.split('\u0000').filter(entry => entry !== '')
+      changes = entries.map((entry) => {
+        const code = entry.slice(0, 2)
+        const path = entry.slice(3)
+        const staged = code[0] !== ' ' && code[0] !== '?'
+        let status: WorkspaceFileGitChange['status'] = 'modified'
+        if (code === '??') status = 'untracked'
+        else if (code.includes('A')) status = 'added'
+        else if (code.includes('D')) status = 'deleted'
+        else if (code.includes('R')) status = 'renamed'
+        else if (code.includes('U')) status = 'conflict'
+        else status = 'modified'
+        return { path, status, staged }
+      })
+    } catch {
+      changes = []
+    }
+    return { changes, branch }
   }
 
   /**

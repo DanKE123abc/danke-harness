@@ -151,6 +151,19 @@ export interface WorkspaceFileSearchResult {
   readonly truncated: boolean
 }
 
+/** One Git working-tree change. */
+export interface WorkspaceFileGitChange {
+  readonly path: string
+  readonly status: 'modified' | 'added' | 'deleted' | 'renamed' | 'untracked' | 'conflict'
+  readonly staged: boolean
+}
+
+/** The Git status of one workspace. */
+export interface WorkspaceFileGitStatus {
+  readonly changes: readonly WorkspaceFileGitChange[]
+  readonly branch: string | null
+}
+
 /** Options for one workspace file search. */
 export interface WorkspaceFileSearchOptions {
   /** Case-sensitive? false by default. */
