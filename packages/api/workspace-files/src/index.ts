@@ -23,6 +23,7 @@ import { posix, win32 } from 'node:path'
 import type { Context } from '@deepseek-ai/cordis'
 import z from '@deepseek-ai/schemastery'
 import type {} from '@deepseek-ai/dsh-fs'
+import type { FsVersion } from '@deepseek-ai/dsh-fs'
 import type { FsDirEntry, FsInfo, FsPathInfo, FsTarget } from '@deepseek-ai/dsh-fs'
 import type {} from '@deepseek-ai/dsh-sandbox-policy'
 import type {} from '@deepseek-ai/dsh-session'
@@ -40,6 +41,7 @@ import type {
   WorkspaceFileStat,
   WorkspaceFileText,
   WorkspaceFileWatchFrame,
+  WorkspaceFileWriteOptions,
 } from './types.ts'
 
 export type * from './types.ts'
@@ -291,6 +293,66 @@ export class WorkspaceFiles extends TypertRemoteService {
   async stat(workspaceFileScope: WorkspaceFileScope, path: string, signal: AbortSignal): Promise<WorkspaceFileStat> {
     const { target, info } = await this.locateFile(workspaceFileScope, path, signal)
     return this.statOf(target, info)
+  }
+
+  /**
+   * Write one UTF-8 text file through the filesystem backend, creating it when
+   * absent and reporting its new identity. A guarded write refuses a stale or
+   * changed file.
+   * @param workspaceFileScope - header-derived workspace root for the Session identity on the wire.
+   * @param path - target path, absolute or workspace-relative.
+   * @param content - the complete new file content.
+   * @param options - optional expected version for a guarded write.
+   * @param signal - caller cancellation.
+   * @returns the file's new absolute path, version, and byte size.
+   */
+  @Remote
+  async write(
+    workspaceFileScope: WorkspaceFileScope,
+    path: string,
+    content: string,
+    options: WorkspaceFileWriteOptions,
+    signal: AbortSignal,
+  ): Promise<WorkspaceFileStat> {
+    if (path.length === 0) throw new RemoteError('gateway/bad-request', 'path is required', {})
+    const { workspaceRoot } = workspaceFileScope
+    const entry = await this.ctx.fs.lstat(path, { cwd: workspaceRoot }, signal)
+    const target = await this.ctx.fs.resolve(path, { cwd: workspaceRoot, signal })
+    if (entry !== undefined && entry.type !== 'file') {
+      throw new RemoteError('workspace-file/not-regular-file', `"${path}" is a ${entry.type}`, { path, kind: entry.type })
+    }
+    const expected = options.expectedVersion === undefined
+      ? undefined
+      : { kind: 'replaceIfVersion' as const, version: options.expectedVersion as FsVersion }
+    if (expected !== undefined && entry === undefined) {
+      throw new RemoteError('workspace-file/stale-version', `"${path}" no longer exists`, { path })
+    }
+    try {
+      await this.ctx.fs.writeText(target, content, expected, signal)
+    } catch (error: unknown) {
+      if (typeof error === 'object' && error !== null && 'code' in error) {
+        const code = (error as { code: unknown }).code
+        if (code === 'FS_STALE_VERSION') {
+          throw new RemoteError('workspace-file/stale-version', `"${path}" changed since it was read`, { path }, { cause: error })
+        }
+        if (code === 'FS_NOT_FOUND') {
+          throw new RemoteError('workspace-file/not-found', `no entry at "${path}"`, { path }, { cause: error })
+        }
+        if (code === 'FS_NOT_REGULAR_FILE') {
+          throw new RemoteError('workspace-file/not-regular-file', `"${path}" is not a regular file`, { path, kind: 'other' }, { cause: error })
+        }
+      }
+      throw error
+    }
+    const info = await this.ctx.fs.stat(target, signal)
+    if (info === undefined) {
+      throw new RemoteError('workspace-file/not-found', `no entry at "${path}"`, { path })
+    }
+    return {
+      absolutePath: this.ctx.fs.processPath(target),
+      version: info.version,
+      ...info.size === undefined ? {} : { bytes: info.size },
+    }
   }
 
   /**

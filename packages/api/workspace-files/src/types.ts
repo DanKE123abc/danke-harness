@@ -141,6 +141,12 @@ export type WorkspaceFileChange =
     readonly absent: true
   }
 
+/** Options for one guarded full-file write. */
+export interface WorkspaceFileWriteOptions {
+  /** Opaque version observed by the caller; a mismatch refuses the write. */
+  readonly expectedVersion?: string
+}
+
 /**
  * One frame of a workspace file watch generation. `ready` confirms that the
  * Host has initialized the target watcher; queued and live invalidations
@@ -166,6 +172,10 @@ declare module '@deepseek-ai/dsh-typert-protocol' {
     'workspace-file/not-regular-file': {
       readonly path: string
       readonly kind: 'directory' | 'symlink' | 'other'
+    }
+    /** The file changed since it was read, so the guarded write was refused. */
+    'workspace-file/stale-version': {
+      readonly path: string
     }
     /** The path is not a directory, so it has no children to list. */
     'workspace-file/not-directory': {
