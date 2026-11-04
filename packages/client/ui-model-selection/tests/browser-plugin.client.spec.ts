@@ -253,7 +253,7 @@ describe('ui-model-selection dual entry', () => {
       b.mint('s1')
       const options = await b.popup().options(projection('s1'), new AbortController().signal)
       expect([...new Set(options.map(option => option.group?.name))])
-        .toEqual(['deepseek-account', 'deepseek-official', 'external', 'last-provider'])
+        .toEqual(['deepseek-account', 'external', 'deepseek-official', 'last-provider'])
     } finally {
       await b.ctx.fiber.dispose()
     }
