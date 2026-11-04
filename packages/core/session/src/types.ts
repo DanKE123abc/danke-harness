@@ -402,6 +402,20 @@ export interface SessionEventMap {
    */
   'request/context': RequestContext
   /**
+   * Records that the configured endpoint accepted one delivery through
+   * `throughSeq`. This is a historical event written by the removed
+   * session-log-deepseek plugin; old sessions may still contain it, so it
+   * stays in the known-event vocabulary and remains readable.
+   */
+  'session-log-deepseek/delivery-accepted': {
+    /** Session identity the accepted delivery carried; inherited fork markers retain the parent's id. */
+    sessionId: SessionId
+    /** Accepted Session format generation; absence identifies version 0. */
+    sessionFormatVersion?: number
+    /** Last canonical event included in the accepted request. */
+    throughSeq: SessionSeq
+  }
+  /**
    * Separates inherited or restored history from later lifecycle-owned work.
    * This log-only marker need not be at {@link Session.firstLiveSeq}: a fork
    * seed can already contain its tagged marker and child-owned synthetic

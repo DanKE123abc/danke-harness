@@ -9,7 +9,6 @@ import * as Official from '@deepseek-ai/dsh-llm-deepseek-api-key'
 import * as Account from '@deepseek-ai/dsh-llm-deepseek-account'
 import type { DeepSeekAccount } from '@deepseek-ai/dsh-deepseek-account'
 import DeepSeekLlmApiExtensionRegistry from '@deepseek-ai/dsh-deepseek-llm-api-extensions'
-import * as SessionLogDeepSeek from '@deepseek-ai/dsh-session-log-deepseek'
 import { createLaunchEnvironmentSnapshot } from '@deepseek-ai/dsh-launch-environment'
 import { once } from 'node:events'
 import { createServer, type ServerResponse } from 'node:http'
@@ -58,7 +57,6 @@ export interface FixtureOptions {
   credentialConfigured?: boolean
   ambientConfigured?: boolean
   signedIn?: boolean
-  withSessionLog?: boolean
   responseStatus?: number
   reply?: (response: ServerResponse, request: NativeRequest) => void | Promise<void>
 }
@@ -137,10 +135,6 @@ export async function paidFixture(cleanups: Array<() => Promise<void>>, options:
     ...options.withSessionQuery === true ? [
       { id: 'query', name: '@deepseek-ai/dsh-session-query-sqlite', config: { path: join(root, 'query.sqlite'), openAt: 'never' } },
     ] : [],
-    ...options.withSessionLog === true ? [
-      { id: 'deepseek-llm-api-extensions', name: '@deepseek-ai/dsh-deepseek-llm-api-extensions' },
-      { id: 'session-log-deepseek', name: '@deepseek-ai/dsh-session-log-deepseek' },
-    ] : [],
   ]
   await writeFile(configPath, JSON.stringify(rows()))
   const modules = new Map<string, unknown>([
@@ -149,7 +143,6 @@ export async function paidFixture(cleanups: Array<() => Promise<void>>, options:
     [options.officialName ?? '@deepseek-ai/dsh-llm-deepseek-api-key', Official],
     ['@deepseek-ai/dsh-llm-deepseek-account', Account], ['@deepseek-ai/dsh-experimental-translator', Translator],
     ['@deepseek-ai/dsh-deepseek-llm-api-extensions', DeepSeekLlmApiExtensionRegistry],
-    ['@deepseek-ai/dsh-session-log-deepseek', SessionLogDeepSeek],
   ])
   const start = () => boot('paid-translator-composition', configPath, [], (host) => {
     const sourceModules: ModuleLoaderV2 = {

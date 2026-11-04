@@ -24,6 +24,5 @@
     - id: resumed-agent
       name: './tests/fixtures/semantic-checkpoint-agent.ts'
 
-- id: session-log-deepseek
   config:
     enabled: false

@@ -1,20 +1,19 @@
-/** Public questionnaire options are emitted in the page bootstrap. */
+/** Bonus notice retry options are emitted in the page bootstrap. */
 import { Context } from '@deepseek-ai/cordis'
 import { expect, it, onTestFinished, vi } from 'vitest'
 import type { IndexInjection } from '@deepseek-ai/dsh-host-webserver'
 import { apply, Config } from '../src/index.ts'
-import { CONTACT_CONFIG_GLOBAL } from '../src/contact-config.ts'
+import { BONUS_NOTICE_CONFIG_GLOBAL } from '../src/bonus-config.ts'
 
-it('injects configured contact options and removes the listener on disposal', async () => {
+it('injects configured bonus notice options and removes the listener on disposal', async () => {
   const ctx = new Context()
   onTestFinished(() => ctx.fiber.dispose())
-  const config: Config = Config({ contactSource: 'harness', bonusAckRetryDelayMs: 25, bonusAckRetryMaxDelayMs: 100 })
-  await ctx.plugin({ Config, apply }, { contactSource: 'harness', bonusAckRetryDelayMs: 25, bonusAckRetryMaxDelayMs: 100 })
+  const config: Config = Config({ bonusAckRetryDelayMs: 25, bonusAckRetryMaxDelayMs: 100 })
+  await ctx.plugin({ Config, apply }, { bonusAckRetryDelayMs: 25, bonusAckRetryMaxDelayMs: 100 })
   const table: IndexInjection[] = []
   ctx.emit('webserver/index-inject', table)
-  expect(table).toEqual([{ kind: 'global', name: CONTACT_CONFIG_GLOBAL, value: {
-    contactFormUrl: config.contactFormUrl, contactSource: config.contactSource,
-    bonusAckRetryDelayMs: 25, bonusAckRetryMaxDelayMs: 100,
+  expect(table).toEqual([{ kind: 'global', name: BONUS_NOTICE_CONFIG_GLOBAL, value: {
+    bonusAckRetryDelayMs: config.bonusAckRetryDelayMs, bonusAckRetryMaxDelayMs: config.bonusAckRetryMaxDelayMs,
   } }])
   await ctx.fiber.dispose()
   table.length = 0
