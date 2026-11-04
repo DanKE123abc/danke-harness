@@ -20,6 +20,7 @@
  */
 
 import { posix, win32 } from 'node:path'
+import { mkdir as makeDir, rename as renamePath, rm } from 'node:fs/promises'
 import type { Context } from '@deepseek-ai/cordis'
 import z from '@deepseek-ai/schemastery'
 import type {} from '@deepseek-ai/dsh-fs'
@@ -353,6 +354,72 @@ export class WorkspaceFiles extends TypertRemoteService {
       version: info.version,
       ...info.size === undefined ? {} : { bytes: info.size },
     }
+  }
+
+  /** Resolve a path and require it to stay inside the Session's workspace root. */
+  private async containedTarget(workspaceFileScope: WorkspaceFileScope, path: string, signal: AbortSignal): Promise<FsTarget> {
+    if (path.length === 0) throw new RemoteError('gateway/bad-request', 'path is required', {})
+    const { workspaceRoot } = workspaceFileScope
+    const root = await this.ctx.fs.resolve(workspaceRoot, { signal })
+    const target = await this.ctx.fs.resolve(path, { cwd: workspaceRoot, signal })
+    if (!this.ctx.fs.contains(root, target)) {
+      throw new RemoteError('workspace-file/outside-workspace', `"${path}" is outside the workspace`, { path })
+    }
+    return target
+  }
+
+  /**
+   * Remove one file or directory inside the Session's workspace.
+   * @param workspaceFileScope - header-derived workspace root for the Session identity on the wire.
+   * @param path - workspace path, absolute or relative to the workspace root.
+   * @param signal - caller cancellation.
+   */
+  @Remote
+  async remove(workspaceFileScope: WorkspaceFileScope, path: string, signal: AbortSignal): Promise<void> {
+    const target = await this.containedTarget(workspaceFileScope, path, signal)
+    const info = await this.ctx.fs.stat(target, signal)
+    if (info === undefined) throw new RemoteError('workspace-file/not-found', `no entry at "${path}"`, { path })
+    await rm(this.ctx.fs.processPath(target), { recursive: true, force: false })
+  }
+
+  /**
+   * Create one directory inside the Session's workspace.
+   * @param workspaceFileScope - header-derived workspace root for the Session identity on the wire.
+   * @param path - workspace path, absolute or relative to the workspace root.
+   * @param signal - caller cancellation.
+   * @returns the new directory's absolute path and version.
+   */
+  @Remote
+  async mkdir(workspaceFileScope: WorkspaceFileScope, path: string, signal: AbortSignal): Promise<WorkspaceFileStat> {
+    const target = await this.containedTarget(workspaceFileScope, path, signal)
+    const existing = await this.ctx.fs.stat(target, signal)
+    if (existing !== undefined) throw new RemoteError('workspace-file/already-exists', `entry already exists at "${path}"`, { path })
+    await makeDir(this.ctx.fs.processPath(target), { recursive: true })
+    const info = await this.ctx.fs.stat(target, signal)
+    if (info === undefined) throw new RemoteError('workspace-file/not-found', `no entry at "${path}"`, { path })
+    return this.statOf(target, info)
+  }
+
+  /**
+   * Rename or move one entry inside the Session's workspace.
+   * @param workspaceFileScope - header-derived workspace root for the Session identity on the wire.
+   * @param oldPath - current workspace path.
+   * @param newPath - destination workspace path.
+   * @param signal - caller cancellation.
+   * @returns the destination's absolute path, version, and byte size.
+   */
+  @Remote
+  async rename(workspaceFileScope: WorkspaceFileScope, oldPath: string, newPath: string, signal: AbortSignal): Promise<WorkspaceFileStat> {
+    const source = await this.containedTarget(workspaceFileScope, oldPath, signal)
+    const destination = await this.containedTarget(workspaceFileScope, newPath, signal)
+    const sourceInfo = await this.ctx.fs.stat(source, signal)
+    if (sourceInfo === undefined) throw new RemoteError('workspace-file/not-found', `no entry at "${oldPath}"`, { path: oldPath })
+    const destinationInfo = await this.ctx.fs.stat(destination, signal)
+    if (destinationInfo !== undefined) throw new RemoteError('workspace-file/already-exists', `entry already exists at "${newPath}"`, { path: newPath })
+    await renamePath(this.ctx.fs.processPath(source), this.ctx.fs.processPath(destination))
+    const info = await this.ctx.fs.stat(destination, signal)
+    if (info === undefined) throw new RemoteError('workspace-file/not-found', `no entry at "${newPath}"`, { path: newPath })
+    return this.statOf(destination, info)
   }
 
   /**

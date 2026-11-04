@@ -182,5 +182,7 @@ declare module '@deepseek-ai/dsh-typert-protocol' {
       readonly path: string
       readonly kind: 'file' | 'symlink' | 'other'
     }
+    /** An entry already exists at that path. */
+    'workspace-file/already-exists': { readonly path: string }
   }
 }
