@@ -403,7 +403,8 @@ export class SidebarRightController implements ISidebarRight {
   ): void {
     const definition = this.tabs.get(kind)
     if (definition === undefined) throw new Error(`sidebarRight: no tab type is registered as "${kind}"`)
-    const address = definition.multiple === true ? `${pageAddress(kind)}/${randomUUID()}` : pageAddress(kind)
+    const multiple = definition.multiple === true && definition.single !== true
+    const address = multiple ? `${pageAddress(kind)}/${randomUUID()}` : pageAddress(kind)
     this.place(sessionId, actions, { kind, contentId: address, title: definition.title(address) }, address, options, options.params)
   }
 
@@ -536,7 +537,9 @@ export class SidebarRightController implements ISidebarRight {
     const { sessionId, actions } = this.require()
     this.host.openWithFocus(sessionId, () => {
       const tab = target.tabId === undefined ? undefined : this.mountedSurface()?.layout.tabs[target.tabId]
-      if (target.host === 'float' && tab?.kind === kind && this.tabs.get(kind)?.multiple !== true) {
+      const definition = this.tabs.get(kind)
+      const multiple = definition?.multiple === true && definition?.single !== true
+      if (target.host === 'float' && tab?.kind === kind && multiple !== true) {
         actions.setExpanded(sessionId, true)
         this.focus(tab.id)
       } else {

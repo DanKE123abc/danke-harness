@@ -104,6 +104,10 @@ export interface SidebarRightTabDefinition {
   readonly kind: string
   /** Each open by kind creates independent content; omission keeps one page per kind in each pane. */
   readonly multiple?: boolean
+  /** Single-instance sugar: `true` is shorthand for `multiple: false`. */
+  readonly single?: boolean
+  /** Hide this type from the guide page while keeping it openable by kind. */
+  readonly hidden?: boolean
   /** Lazily keep a visited body mounted through hiding, Session changes and docking; default false. */
   readonly keepMounted?: boolean
   /**
@@ -407,7 +411,11 @@ export class SidebarRightTabRegistry {
   private refresh(): void {
     this.cached = this.active().map(entry => entry.definition)
     this.guideEntries = this.cached
-      .flatMap(definition => (definition.guide ?? []).map(entry => ({ ...entry, kind: definition.kind, providerId: definition.id })))
+      .flatMap(definition => (
+        definition.hidden === true
+          ? []
+          : (definition.guide ?? []).map(entry => ({ ...entry, kind: definition.kind, providerId: definition.id }))
+      ))
       .sort((left, right) => left.order - right.order)
     notifySubscribers(this.listeners, '[ui-sidebar-right] tab registry')
   }
