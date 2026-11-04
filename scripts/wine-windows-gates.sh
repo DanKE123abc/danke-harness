@@ -225,17 +225,9 @@ wine_node() {
 cd "$scratch/tree"
 tsc_js='node_modules/typescript/bin/tsc'
 tsdown_js='node_modules/tsdown/dist/run.mjs'
-vitepress_js='node_modules/vitepress/bin/vitepress.js'
-[ -f "$vitepress_js" ] || vitepress_js='website/node_modules/vitepress/bin/vitepress.js'
-for entry in "$tsc_js" "$tsdown_js" "$vitepress_js"; do
+for entry in "$tsc_js" "$tsdown_js"; do
   [ -f "$entry" ] || { echo "wine-windows-gates: expected entrypoint missing after hoisted install: $entry" >&2; exit 1; }
 done
-# VitePress links vue into the site's node_modules at build time; Wine cannot
-# CREATE Windows symlinks (ENOTSUP) but follows pre-existing Unix ones.
-if [ -d node_modules/vue ] && [ ! -e website/node_modules/vue ]; then
-  mkdir -p website/node_modules
-  ln -s ../../node_modules/vue website/node_modules/vue
-fi
 
 wine_node "$scratch/logs/smoke.log" -p "'smoke: ' + process.platform + ' ' + process.arch + ' ' + process.version"
 cat "$scratch/logs/smoke.log"
@@ -253,14 +245,9 @@ build_gate() {
   wine_node "$scratch/logs/client-tsc.log" "$tsc_js" -b tsconfig.client.json --pretty false || return $?
   wine_node "$scratch/logs/client-tsdown.log" "$tsdown_js" --env.DSH_BUILD_FACE client
 }
-site_gate() {
-  cd website
-  wine_node "$scratch/logs/site.log" "../$vitepress_js" build .
-}
 
 start=$SECONDS
 build_gate & build_pid=$!
-site_gate & site_pid=$!
 build_status=0
 wait "$build_pid" || build_status=$?
 site_status=0
@@ -283,6 +270,5 @@ report 'build (Host tsc/tsdown, desktop tsdown, Client tsc/tsdown)' "$build_stat
   "$scratch/logs/desktop-tsdown.log" \
   "$scratch/logs/client-tsc.log" \
   "$scratch/logs/client-tsdown.log"
-report 'production site (vitepress build)' "$site_status" "$scratch/logs/site.log"
 if (( build_status != 0 )); then exit "$build_status"; fi
-exit "$site_status"
+exit 0

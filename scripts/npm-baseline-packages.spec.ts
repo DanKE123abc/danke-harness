@@ -31,7 +31,6 @@ describe('npm baseline package discovery', () => {
       ...expected,
       'package.json',
       'packages/experimental/new-prototype/nested/package.json',
-      'website/package.json',
     ])
 
     expect(discoverNpmBaselineManifests(root)).toEqual(expected)
