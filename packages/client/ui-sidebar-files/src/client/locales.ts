@@ -39,6 +39,7 @@ export const zh = {
   'error.unavailable': '读取失败：{message}',
   delete: '删除',
   'newFolder': '新建文件夹',
+  rename: '重命名',
 } satisfies Record<string, string>
 
 /** Files dictionary key union. */
@@ -65,4 +66,5 @@ export const en = {
   'error.unavailable': 'Read failed: {message}',
   delete: 'Delete',
   'newFolder': 'New folder',
+  rename: 'Rename',
 } satisfies Record<SidebarFilesKey, string>

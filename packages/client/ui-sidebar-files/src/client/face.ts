@@ -145,6 +145,7 @@ export interface FilesInjected {
   readonly removeEntry?: (tabId: TabId, path: string, signal: AbortSignal) => Promise<void>
   /** Create one directory inside the workspace. */
   readonly createDirectory?: (tabId: TabId, parentPath: string, name: string, signal: AbortSignal) => Promise<void>
+  readonly renameEntry?: (tabId: TabId, oldPath: string, newPath: string, signal: AbortSignal) => Promise<void>
 }
 
 /**
@@ -231,6 +232,11 @@ export function filesFace(
         const target = `${parentPath.replace(/[/\\]+$/, '')}/${name}`
         const result = await remote.workspaceFiles.mkdir(sessionId, target, signal)
         if (!result.ok) throw new Error(result.error?.message ?? 'mkdir failed')
+      },
+      renameEntry: async (_tabId, oldPath, newPath, signal) => {
+        if (remote === undefined) return
+        const result = await remote.workspaceFiles.rename(sessionId, oldPath, newPath, signal)
+        if (!result.ok) throw new Error(result.error?.message ?? 'rename failed')
       },
     }
   }

@@ -75,6 +75,7 @@ interface TreeContext {
   readonly onToggle: (parent: string, path: string) => void
   readonly onOpen: (path: string) => void
   readonly onDelete: (path: string) => void
+  readonly onRename: (path: string) => void
   readonly t: TranslateNS<'sidebarFiles'>
 }
 
@@ -102,6 +103,9 @@ function Entry({ parent, entry, tree }: { parent: string; entry: WorkspaceDirect
         </button>
         <button type="button" className={css.tool} aria-label={tree.t('delete')} data-files-delete onClick={() => { tree.onDelete(path) }}>
           ×
+        </button>
+        <button type="button" className={css.tool} aria-label={tree.t('rename')} data-files-rename onClick={() => { tree.onRename(path) }}>
+          ↻
         </button>
       </li>
     )
@@ -143,7 +147,7 @@ function Level({ path, tree }: { path: string; tree: TreeContext }): ReactNode {
 /** The file tree's body: the workspace root and whatever the reader has opened under it. */
 export function FilesBody({
   useTabInfo, sessionId, useSessions, useStore, actions,
-  start, refresh, setAutoRefresh, toggle, removeEntry, createDirectory, t, renderSlot,
+  start, refresh, setAutoRefresh, toggle, removeEntry, createDirectory, renameEntry, t, renderSlot,
 }: FilesBodyProps): ReactNode {
   const { tab } = useTabInfo()
   useEffect(() => tab.actions.bindCommands({ refresh: () => { refresh(tab.id) } }), [tab.actions, tab.id, refresh])
@@ -192,6 +196,13 @@ export function FilesBody({
     onDelete: (path) => {
       if (removeEntry === undefined) return
       void removeEntry(tab.id, path, signal).then(() => { refresh(tab.id) }).catch(() => {})
+    },
+    onRename: (path) => {
+      if (renameEntry === undefined) return
+      const name = typeof window !== 'undefined' ? window.prompt(t('rename'), path.slice(path.lastIndexOf('/') + 1)) : null
+      if (name === null || name.trim() === '') return
+      const next = `${path.slice(0, path.lastIndexOf('/') + 1)}${name.trim()}`
+      void renameEntry(tab.id, path, next, signal).then(() => { refresh(tab.id) }).catch(() => {})
     },
     t,
   }
