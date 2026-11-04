@@ -43,6 +43,8 @@ import type {
   SessionCreateValue,
   SessionForkRequest,
   SessionForkValue,
+  SessionSidechatStartRequest,
+  SessionSidechatStartValue,
   SessionPromptRequest,
   SessionPromptValue,
   SessionRenameRequest,
@@ -305,6 +307,35 @@ export class SessionCommandController {
           { sessionId: childId, workspaceId: workspace.id },
         )
       }
+    }
+    return { sessionId: childId }
+  }
+
+  /**
+   * Create a side chat thread from one source Session.
+   * @param request - source Session identity.
+   * @returns the new thread Session identity.
+   */
+  async sidechatStart(request: SessionSidechatStartRequest): Promise<SessionSidechatStartValue> {
+    const observed = await this.ctx.sessionQuery.observeSession(request.sessionId)
+    using source = observed
+    const composition = await this.agents.composeAgent(this.agents.presetForObservation(source))
+    const childId = brandString<SessionId>(`session-${randomUUID()}`)
+    const { provider, model } = this.ctx.agentDefaultModel.currentSelection()
+    try {
+      await this.ctx.agents.create({
+        sessionId: childId,
+        meta: {
+          ...(source.header.cwd === undefined ? {} : { cwd: source.header.cwd }),
+          parentSession: source.header.id,
+          origin: 'subagent',
+          ...(composition.agentPreset === undefined ? {} : { agentPreset: composition.agentPreset }),
+        },
+        agentOptions: { provider, model },
+        setup: composition.setup,
+      })
+    } catch (error) {
+      throw new RemoteError('gateway/internal', `failed to create side chat: ${String(error)}`, {})
     }
     return { sessionId: childId }
   }

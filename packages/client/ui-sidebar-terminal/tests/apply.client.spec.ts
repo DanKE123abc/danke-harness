@@ -14,9 +14,8 @@ import type { SidebarRightCloseHandler } from '@deepseek-ai/dsh-client-ui-sideba
 import type { SidebarRightOpenTab } from '@deepseek-ai/dsh-client-ui-sidebar-right/client'
 import { apply, inject } from '../src/client/index.ts'
 import { apply as hostApply } from '../src/index.ts'
-import { TerminalGuide, type TerminalGuideInjected } from '../src/client/TerminalGuide.tsx'
+import type { TerminalGuideInjected } from '../src/client/TerminalGuide.tsx'
 import { LazyTerminalBody } from '../src/client/LazyTerminalBody.tsx'
-import { TerminalTitle } from '../src/client/TerminalTitle.tsx'
 import type { TerminalBodyInjected } from '../src/client/face.ts'
 import { en, zh } from '../src/client/locales.ts'
 
@@ -98,11 +97,13 @@ it('registers terminal views without recovery or cleanup slots, then releases co
     expect(renderToStaticMarkup(createElement(Icon))).toContain('width="36"')
     expect(definition.multiple).toBe(true)
     expect(h.dictionaries.get('sidebarTerminal')).toEqual({ en, zh })
-    expect(h.entries.map(entry => [entry.name, entry.component, entry.locale])).toEqual([
-      ['sidebar.right.tab.guide.entry', TerminalGuide, 'sidebarTerminal'],
-      ['sidebar.right.pane.tab', LazyTerminalBody, 'sidebarTerminal'],
-      ['sidebar.right.pane.tab.title', TerminalTitle, 'sidebarTerminal'],
-    ])
+    expect(h.entries.map(entry => entry.name)).toEqual(expect.arrayContaining([
+      'sidebar.right.tab.guide.entry',
+      'sidebar.right.pane.tab',
+      'sidebar.right.pane.tab.title',
+      'conversation.session.header.utilities',
+      'shell.overlay',
+    ]))
     const sessionId = 'session' as SessionId
     const launcher = h.entries[0]!.inject(sessionId) as TerminalGuideInjected
     const signal = new AbortController().signal

@@ -141,6 +141,58 @@ export type WorkspaceFileChange =
     readonly absent: true
   }
 
+/** One file or directory search hit, relative to the search root. */
+export interface WorkspaceFileSearchResult {
+  /** Matching entry paths, '/'-separated and relative to the search root. */
+  readonly matches: readonly string[]
+  /** The subset of `matches` that are directories. */
+  readonly dirs: readonly string[]
+  /** Whether the walk stopped before exhausting the tree. */
+  readonly truncated: boolean
+}
+
+/** One Git working-tree change. */
+export interface WorkspaceFileGitChange {
+  readonly path: string
+  readonly status: 'modified' | 'added' | 'deleted' | 'renamed' | 'untracked' | 'conflict'
+  readonly staged: boolean
+}
+
+/** One Git diff. */
+export interface WorkspaceFileGitDiff {
+  readonly path: string
+  readonly staged: boolean
+  readonly text: string
+  readonly truncated: boolean
+}
+
+/** The Git status of one workspace. */
+export interface WorkspaceFileGitStatus {
+  readonly changes: readonly WorkspaceFileGitChange[]
+  readonly branch: string | null
+}
+
+/** Result of creating one Git commit. */
+export interface WorkspaceFileGitCommitResult {
+  readonly commitId: string | null
+}
+
+/** Options for one workspace file search. */
+export interface WorkspaceFileSearchOptions {
+  /** Case-sensitive? false by default. */
+  readonly caseSensitive?: boolean
+  /** Maximum number of matches to return. */
+  readonly maxMatches?: number
+  /** Maximum number of entries to visit. */
+  readonly maxVisited?: number
+}
+
+/** Options for one guarded full-file write. */
+export interface WorkspaceFileWriteOptions {
+  /** Opaque version observed by the caller; a mismatch refuses the write. */
+  readonly expectedVersion?: string
+}
+
 /**
  * One frame of a workspace file watch generation. `ready` confirms that the
  * Host has initialized the target watcher; queued and live invalidations
@@ -167,10 +219,20 @@ declare module '@deepseek-ai/dsh-typert-protocol' {
       readonly path: string
       readonly kind: 'directory' | 'symlink' | 'other'
     }
+    /** The file changed since it was read, so the guarded write was refused. */
+    'workspace-file/stale-version': {
+      readonly path: string
+    }
     /** The path is not a directory, so it has no children to list. */
     'workspace-file/not-directory': {
       readonly path: string
       readonly kind: 'file' | 'symlink' | 'other'
     }
+    /** An entry already exists at that path. */
+    'workspace-file/already-exists': { readonly path: string }
+    /** A Git command failed. */
+    'workspace-file/git-command-failed': { readonly message: string }
+    /** The supplied path is not a valid repository-relative Git path. */
+    'workspace-file/bad-path': { readonly path: string }
   }
 }

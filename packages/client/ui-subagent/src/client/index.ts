@@ -1,9 +1,13 @@
 /** Web subagent catalog, navigation, and addressed-session composer owner. */
 import type { Context as ClientContext } from '@deepseek-ai/cordis'
+import React from 'react'
+import { useState } from 'react'
+import type { ReactNode } from 'react'
 import type { SubagentAddress } from '@deepseek-ai/dsh-subagent/client'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
+import type { PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 import type { ComposerChainProps } from '@deepseek-ai/dsh-client-ui-conversation/client'
-import { SubagentCatalogAction, SubagentHeaderLineage, type SubagentCatalogInjected } from './SubagentHeaderLineage.tsx'
+import { SubagentCatalogAction, SubagentHeaderLineage, type SubagentCatalogInjected, type SubagentHeaderLineageProps } from './SubagentHeaderLineage.tsx'
 import {
   SubagentReadOnlyComposer, type SubagentReadOnlyMatch,
 } from './SubagentReadOnlyComposer.tsx'
@@ -31,7 +35,7 @@ export type {
 } from './SubagentReadOnlyComposer.tsx'
 
 /** Required services for subagent presentation and navigation. */
-export const inject = ['sessions', 'uiWorkspace', 'slots', 'locale', 'sidebarRight']
+export const inject = ['sessions', 'uiWorkspace', 'slots', 'locale', 'sidebarRight', 'remote']
 
 /** Claim the composer for one-shot history or an unavailable continuation owner. */
 function selectReadOnlySubagent(owner: ComposerChainProps): SubagentReadOnlyMatch | null {
@@ -54,9 +58,72 @@ function selectReadOnlySubagent(owner: ComposerChainProps): SubagentReadOnlyMatc
  */
 export function apply(ctx: ClientContext): void {
   ctx.effect(() => ctx.locale.register(NS, { zh, en }), 'ui-subagent: dictionaries')
+  const t = ctx.locale.bind(NS)
   ctx.inject(['resources', 'sidebarRightTabs'], (scope) => {
     registerSidebarChat(scope, ctx.locale.bind(NS))
+    const TASKS_ID_LOCAL = '@deepseek-ai/dsh-client-ui-subagent-tasks'
+    ctx.effect(() => scope.sidebarRightTabs.register({
+      id: TASKS_ID_LOCAL,
+      kind: 'tasks',
+      priority: 'builtin',
+      title: () => t('tasks'),
+      guide: [{ id: 'tasks', order: 20, title: () => t('tasks') }],
+    }), 'ui-subagent: tasks tab type')
   })
+  const TASKS_ID = '@deepseek-ai/dsh-client-ui-subagent-tasks'
+  function TasksTab(props: PropsRuntime<'sidebar.right.pane.tab'> & PropsLocale<typeof NS>): ReactNode {
+    const catalogActions: SubagentCatalogInjected = {
+      openChild(address: SubagentAddress) {
+        ctx.uiWorkspace.openSession(address)
+      },
+      openChildAside(address: SubagentAddress) {
+        ctx.sidebarRight.openResource(subagentChatAddress(address), {
+          kind: 'subagentchat',
+          preferNewPane: true,
+        })
+      },
+      refreshProjection(parentSessionId: SessionId) {
+        void ctx.sessions.refreshProjections(parentSessionId)
+      },
+    }
+    return React.createElement(SubagentHeaderLineage, {
+      ...(props as unknown as SubagentHeaderLineageProps),
+      ...catalogActions,
+      t,
+    })
+  }
+  ctx.effect(() => ctx.slots.inject('sidebar.right.pane.tab', () => ctx.slots.register({
+    name: 'sidebar.right.pane.tab',
+    key: TASKS_ID,
+    locale: NS,
+  }, TasksTab)), 'ui-subagent: tasks tab body')
+  function SideChatUtility(props: PropsRuntime<'conversation.session.header.utilities'> & PropsLocale<typeof NS>): ReactNode {
+    const [pending, setPending] = useState(false)
+    const onClick = async (): Promise<void> => {
+      setPending(true)
+      try {
+        const sidechat = ctx.remote?.session
+        if (sidechat === undefined) return
+        const result = await sidechat.sidechatStart({ sessionId: props.sessionId })
+        if (result.ok) {
+          ctx.sidebarRight.openResource(subagentChatAddress({
+            parentSessionId: props.sessionId,
+            childSessionId: result.value.sessionId,
+            mode: 'continuable',
+          }), { kind: 'subagentchat', preferNewPane: true })
+        }
+      } finally {
+        setPending(false)
+      }
+    }
+    return React.createElement('button', { type: 'button', disabled: pending, onClick }, t('sidechat'))
+  }
+  ctx.effect(() => ctx.slots.inject('conversation.session.header.utilities', () => ctx.slots.register({
+    name: 'conversation.session.header.utilities',
+    id: 'sidechat',
+    order: 5,
+    locale: NS,
+  }, SideChatUtility)), 'ui-subagent: side chat utility')
   const catalogActions = (_parentSessionId: SessionId): SubagentCatalogInjected => ({
     openChild(address: SubagentAddress) {
       ctx.uiWorkspace.openSession(address)

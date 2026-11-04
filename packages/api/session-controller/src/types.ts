@@ -340,6 +340,16 @@ export interface SessionForkValue {
   readonly sessionId: SessionId
 }
 
+/** Side chat thread creation request. */
+export interface SessionSidechatStartRequest {
+  readonly sessionId: SessionId
+}
+
+/** Identity of a newly created side chat thread. */
+export interface SessionSidechatStartValue {
+  readonly sessionId: SessionId
+}
+
 /** Session prompt request. */
 export interface SessionPromptRequest {
   /** Client-minted identity persisted on the exact accepted user message. */

@@ -141,6 +141,29 @@ export interface FilesInjected {
    * @param signal - the tab record's lifetime.
    */
   readonly toggle: (tabId: TabId, parentPath: string, path: string, expanded: readonly string[], signal: AbortSignal) => void
+  /** Remove one entry inside the workspace. */
+  readonly removeEntry?: (tabId: TabId, path: string, signal: AbortSignal) => Promise<void>
+  /** Create one directory inside the workspace. */
+  readonly createDirectory?: (tabId: TabId, parentPath: string, name: string, signal: AbortSignal) => Promise<void>
+  readonly renameEntry?: (tabId: TabId, oldPath: string, newPath: string, signal: AbortSignal) => Promise<void>
+  readonly searchFiles?: (
+    tabId: TabId,
+    query: string,
+    signal: AbortSignal,
+  ) => Promise<{ matches: readonly string[]; dirs: readonly string[]; truncated: boolean }>
+  readonly gitStatus?: (
+    tabId: TabId,
+    signal: AbortSignal,
+  ) => Promise<{ changes: readonly { path: string; status: string; staged: boolean }[]; branch: string | null }>
+  readonly gitDiff?: (
+    tabId: TabId,
+    path: string,
+    staged: boolean,
+    signal: AbortSignal,
+  ) => Promise<{ path: string; staged: boolean; text: string; truncated: boolean }>
+  readonly gitStage?: (tabId: TabId, paths: readonly string[], signal: AbortSignal) => Promise<void>
+  readonly gitUnstage?: (tabId: TabId, paths: readonly string[], signal: AbortSignal) => Promise<void>
+  readonly gitCommit?: (tabId: TabId, message: string, signal: AbortSignal) => Promise<{ commitId: string | null }>
 }
 
 /**
@@ -152,6 +175,7 @@ export interface FilesInjected {
 export function filesFace(
   list: ListWorkspaceDirectory,
   watch: WatchWorkspaceDirectory,
+  remote?: ClientRemote,
 ): (sessionId: SessionId, actions: BoundActions<ReturnType<typeof createFilesStore>>) => FilesInjected {
   return (
     sessionId: SessionId,
@@ -215,6 +239,56 @@ export function filesFace(
         if (collapsing) void parent?.collapse(path)
         else parent?.expand(path, next)
         actions.toggled(tabId, path)
+      },
+      removeEntry: async (_tabId, path, signal) => {
+        if (remote === undefined) return
+        const result = await remote.workspaceFiles.remove(sessionId, path, signal)
+        if (!result.ok) throw new Error(result.error?.message ?? 'remove failed')
+      },
+      createDirectory: async (_tabId, parentPath, name, signal) => {
+        if (remote === undefined) return
+        const target = `${parentPath.replace(/[/\\]+$/, '')}/${name}`
+        const result = await remote.workspaceFiles.mkdir(sessionId, target, signal)
+        if (!result.ok) throw new Error(result.error?.message ?? 'mkdir failed')
+      },
+      renameEntry: async (_tabId, oldPath, newPath, signal) => {
+        if (remote === undefined) return
+        const result = await remote.workspaceFiles.rename(sessionId, oldPath, newPath, signal)
+        if (!result.ok) throw new Error(result.error?.message ?? 'rename failed')
+      },
+      searchFiles: async (_tabId, query, signal) => {
+        if (remote === undefined) return { matches: [], dirs: [], truncated: false }
+        const result = await remote.workspaceFiles.search(sessionId, query, { maxMatches: 50, maxVisited: 10000 }, signal)
+        if (!result.ok) return { matches: [], dirs: [], truncated: false }
+        return { matches: result.value.matches, dirs: result.value.dirs, truncated: result.value.truncated }
+      },
+      gitStatus: async (_tabId, signal) => {
+        if (remote === undefined) return { changes: [], branch: null }
+        const result = await remote.workspaceFiles.gitStatus(sessionId, signal)
+        if (!result.ok) return { changes: [], branch: null }
+        return { changes: result.value.changes, branch: result.value.branch }
+      },
+      gitDiff: async (_tabId, path, staged, signal) => {
+        if (remote === undefined) return { path, staged, text: '', truncated: false }
+        const result = await remote.workspaceFiles.gitDiff(sessionId, path, staged, signal)
+        if (!result.ok) return { path, staged, text: '', truncated: false }
+        return { path: result.value.path, staged: result.value.staged, text: result.value.text, truncated: result.value.truncated }
+      },
+      gitStage: async (_tabId, paths, signal) => {
+        if (remote === undefined) return
+        const result = await remote.workspaceFiles.gitStage(sessionId, paths, signal)
+        if (!result.ok) throw new Error(result.error?.message ?? 'git stage failed')
+      },
+      gitUnstage: async (_tabId, paths, signal) => {
+        if (remote === undefined) return
+        const result = await remote.workspaceFiles.gitUnstage(sessionId, paths, signal)
+        if (!result.ok) throw new Error(result.error?.message ?? 'git unstage failed')
+      },
+      gitCommit: async (_tabId, message, signal) => {
+        if (remote === undefined) return { commitId: null }
+        const result = await remote.workspaceFiles.gitCommit(sessionId, message, signal)
+        if (!result.ok) throw new Error(result.error?.message ?? 'git commit failed')
+        return { commitId: result.value.commitId }
       },
     }
   }

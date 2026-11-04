@@ -8,7 +8,7 @@
  * anything else is shown but refuses to open. The header uses the shared
  * PathLabel for the root, followed by reload and workspace directory actions.
  */
-import { useEffect, useLayoutEffect, useRef } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
 import clsx from 'clsx'
 import type { RemoteFailure } from '@deepseek-ai/dsh-api-remotes/client'
@@ -74,6 +74,9 @@ interface TreeContext {
   readonly state: FilesTabState
   readonly onToggle: (parent: string, path: string) => void
   readonly onOpen: (path: string) => void
+  readonly onDelete: (path: string) => void
+  readonly onRename: (path: string) => void
+  readonly gitChanges: Readonly<Record<string, string>>
   readonly t: TranslateNS<'sidebarFiles'>
 }
 
@@ -98,6 +101,22 @@ function Entry({ parent, entry, tree }: { parent: string; entry: WorkspaceDirect
         <button type="button" className={css.row} onClick={() => { tree.onOpen(path) }}>
           <FileTypeIcon kind={classifyFileType(entry.name)} size={16} className={css.fileIcon} />
           <span className={css.name}>{entry.name}</span>
+          {(() => {
+            const relativePath = path.slice(tree.state.root.length).replace(/^[\\/]+/, '')
+            const status = tree.gitChanges[relativePath]
+            if (status === undefined) return null
+            return (
+              <span className={css.gitStatus} data-files-git-status={status}>
+                {status[0]?.toUpperCase()}
+              </span>
+            )
+          })()}
+        </button>
+        <button type="button" className={css.tool} aria-label={tree.t('delete')} data-files-delete onClick={() => { tree.onDelete(path) }}>
+          ×
+        </button>
+        <button type="button" className={css.tool} aria-label={tree.t('rename')} data-files-rename onClick={() => { tree.onRename(path) }}>
+          ↻
         </button>
       </li>
     )
@@ -139,13 +158,53 @@ function Level({ path, tree }: { path: string; tree: TreeContext }): ReactNode {
 /** The file tree's body: the workspace root and whatever the reader has opened under it. */
 export function FilesBody({
   useTabInfo, sessionId, useSessions, useStore, actions,
-  start, refresh, setAutoRefresh, toggle, t, renderSlot,
+  start, refresh, setAutoRefresh, toggle, removeEntry, createDirectory, renameEntry, searchFiles, gitStatus, t, renderSlot,
 }: FilesBodyProps): ReactNode {
   const { tab } = useTabInfo()
   useEffect(() => tab.actions.bindCommands({ refresh: () => { refresh(tab.id) } }), [tab.actions, tab.id, refresh])
   const { signal, actions: tabActions } = tab
   const cwd = useSessions(sessions => sessions.byId[sessionId]?.cwd)
   const state = useStore(store => store.byTab[tab.id])
+  const [query, setQuery] = useState('')
+  const [results, setResults] = useState<{ matches: readonly string[]; dirs: readonly string[]; truncated: boolean } | null>(null)
+  const [gitChanges, setGitChanges] = useState<Readonly<Record<string, string>>>({})
+  useEffect(() => {
+    if (query.trim() === '') {
+      setResults(null)
+      return
+    }
+    const controller = new AbortController()
+    let cancelled = false
+    void (searchFiles === undefined
+      ? Promise.resolve({ matches: [], dirs: [], truncated: false })
+      : searchFiles(tab.id, query, controller.signal)
+    ).then((result) => {
+      if (!cancelled) setResults(result)
+    }).catch(() => {
+      if (!cancelled) setResults({ matches: [], dirs: [], truncated: false })
+    })
+    return () => {
+      cancelled = true
+      controller.abort()
+    }
+  }, [query, searchFiles, tab.id])
+  useEffect(() => {
+    if (gitStatus === undefined || state?.root === undefined) return
+    const controller = new AbortController()
+    let cancelled = false
+    void gitStatus(tab.id, controller.signal).then((result) => {
+      if (cancelled) return
+      const next: Record<string, string> = {}
+      for (const change of result.changes) next[change.path] = change.status
+      setGitChanges(next)
+    }).catch(() => {
+      if (!cancelled) setGitChanges({})
+    })
+    return () => {
+      cancelled = true
+      controller.abort()
+    }
+  }, [gitStatus, tab.id, state?.root])
   const bodyRef = useRef<HTMLDivElement>(null)
   const scrollTopRef = useRef(0)
   // Come back where the reader was: loaded levels outlive the body in the
@@ -185,7 +244,25 @@ export function FilesBody({
     onToggle: (parent, path) => { toggle(tab.id, parent, path, state.expanded, signal) },
     // Every row is under the tree's root, so its address is session-relative.
     onOpen: (path) => { tabActions.openResource(fileAddressFor(sessionId, state.root, path)) },
+    onDelete: (path) => {
+      if (removeEntry === undefined) return
+      void removeEntry(tab.id, path, signal).then(() => { refresh(tab.id) }).catch(() => {})
+    },
+    onRename: (path) => {
+      if (renameEntry === undefined) return
+      const name = typeof window !== 'undefined' ? window.prompt(t('rename'), path.slice(path.lastIndexOf('/') + 1)) : null
+      if (name === null || name.trim() === '') return
+      const next = `${path.slice(0, path.lastIndexOf('/') + 1)}${name.trim()}`
+      void renameEntry(tab.id, path, next, signal).then(() => { refresh(tab.id) }).catch(() => {})
+    },
+    gitChanges,
     t,
+  }
+  const onCreateFolder = (): void => {
+    if (createDirectory === undefined || state === undefined) return
+    const name = typeof window !== 'undefined' ? window.prompt(t('newFolder')) : null
+    if (name === null || name.trim() === '') return
+    void createDirectory(tab.id, state.root, name.trim(), signal).then(() => { refresh(tab.id) }).catch(() => {})
   }
   const reload = (): void => {
     refresh(tab.id)
@@ -194,6 +271,13 @@ export function FilesBody({
     <div className={css.root} data-files-state="tree" data-files-root={state.root}>
       <div className={css.header}>
         <PathLabel path={state.root} className={css.path} data-files-path />
+        <input
+          type="search"
+          aria-label={t('search')}
+          value={query}
+          onChange={event => setQuery(event.target.value)}
+          className={css.search}
+        />
         <span hidden>
           <button type="button" className={css.tool} aria-label={t('autoRefresh')}
             aria-pressed={state.autoRefresh} data-files-auto-refresh
@@ -214,6 +298,9 @@ export function FilesBody({
             <IconRefreshOutlineRegular />
           </button>
         </Tooltip>
+        <button type="button" className={css.tool} aria-label={t('newFolder')} data-files-new-folder onClick={onCreateFolder}>
+          +
+        </button>
         {renderSlot('sidebar.right.tab.files.actions', {
           absolutePath: state.root,
         })}
@@ -224,7 +311,22 @@ export function FilesBody({
         data-files-body
         onScroll={(event) => { scrollTopRef.current = event.currentTarget.scrollTop }}
       >
-        <ul className={css.level}><Level path={state.root} tree={tree} /></ul>
+        {results === null ? (
+          <ul className={css.level}><Level path={state.root} tree={tree} /></ul>
+        ) : (
+          <ul className={css.level}>
+            {results.matches.map(path => (
+              <li key={path} className={css.item} data-files-search-result={path}>
+                <button type="button" className={css.row} onClick={() => {
+                  if (!results.dirs.includes(path)) tree.onOpen(path)
+                }}>
+                  <span className={css.name}>{path}</span>
+                </button>
+              </li>
+            ))}
+            {results.truncated && <li className={css.note} data-files-row="truncated">{t('truncated')}</li>}
+          </ul>
+        )}
       </div>
     </div>
   )

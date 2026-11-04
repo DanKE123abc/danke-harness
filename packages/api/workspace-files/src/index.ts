@@ -20,9 +20,13 @@
  */
 
 import { posix, win32 } from 'node:path'
+import { mkdir as makeDir, readdir, rename as renamePath, rm } from 'node:fs/promises'
+import { execFile } from 'node:child_process'
+import { promisify } from 'node:util'
 import type { Context } from '@deepseek-ai/cordis'
 import z from '@deepseek-ai/schemastery'
 import type {} from '@deepseek-ai/dsh-fs'
+import type { FsVersion } from '@deepseek-ai/dsh-fs'
 import type { FsDirEntry, FsInfo, FsPathInfo, FsTarget } from '@deepseek-ai/dsh-fs'
 import type {} from '@deepseek-ai/dsh-sandbox-policy'
 import type {} from '@deepseek-ai/dsh-session'
@@ -40,6 +44,13 @@ import type {
   WorkspaceFileStat,
   WorkspaceFileText,
   WorkspaceFileWatchFrame,
+  WorkspaceFileWriteOptions,
+  WorkspaceFileSearchResult,
+  WorkspaceFileSearchOptions,
+  WorkspaceFileGitStatus,
+  WorkspaceFileGitChange,
+  WorkspaceFileGitDiff,
+  WorkspaceFileGitCommitResult,
 } from './types.ts'
 
 export type * from './types.ts'
@@ -291,6 +302,371 @@ export class WorkspaceFiles extends TypertRemoteService {
   async stat(workspaceFileScope: WorkspaceFileScope, path: string, signal: AbortSignal): Promise<WorkspaceFileStat> {
     const { target, info } = await this.locateFile(workspaceFileScope, path, signal)
     return this.statOf(target, info)
+  }
+
+  /**
+   * Write one UTF-8 text file through the filesystem backend, creating it when
+   * absent and reporting its new identity. A guarded write refuses a stale or
+   * changed file.
+   * @param workspaceFileScope - header-derived workspace root for the Session identity on the wire.
+   * @param path - target path, absolute or workspace-relative.
+   * @param content - the complete new file content.
+   * @param options - optional expected version for a guarded write.
+   * @param signal - caller cancellation.
+   * @returns the file's new absolute path, version, and byte size.
+   */
+  @Remote
+  async write(
+    workspaceFileScope: WorkspaceFileScope,
+    path: string,
+    content: string,
+    options: WorkspaceFileWriteOptions,
+    signal: AbortSignal,
+  ): Promise<WorkspaceFileStat> {
+    if (path.length === 0) throw new RemoteError('gateway/bad-request', 'path is required', {})
+    const { workspaceRoot } = workspaceFileScope
+    const entry = await this.ctx.fs.lstat(path, { cwd: workspaceRoot }, signal)
+    const target = await this.ctx.fs.resolve(path, { cwd: workspaceRoot, signal })
+    if (entry !== undefined && entry.type !== 'file') {
+      throw new RemoteError('workspace-file/not-regular-file', `"${path}" is a ${entry.type}`, { path, kind: entry.type })
+    }
+    const expected = options.expectedVersion === undefined
+      ? undefined
+      : { kind: 'replaceIfVersion' as const, version: options.expectedVersion as FsVersion }
+    if (expected !== undefined && entry === undefined) {
+      throw new RemoteError('workspace-file/stale-version', `"${path}" no longer exists`, { path })
+    }
+    try {
+      await this.ctx.fs.writeText(target, content, expected, signal)
+    } catch (error: unknown) {
+      if (typeof error === 'object' && error !== null && 'code' in error) {
+        const code = (error as { code: unknown }).code
+        if (code === 'FS_STALE_VERSION') {
+          throw new RemoteError('workspace-file/stale-version', `"${path}" changed since it was read`, { path }, { cause: error })
+        }
+        if (code === 'FS_NOT_FOUND') {
+          throw new RemoteError('workspace-file/not-found', `no entry at "${path}"`, { path }, { cause: error })
+        }
+        if (code === 'FS_NOT_REGULAR_FILE') {
+          throw new RemoteError('workspace-file/not-regular-file', `"${path}" is not a regular file`, { path, kind: 'other' }, { cause: error })
+        }
+      }
+      throw error
+    }
+    const info = await this.ctx.fs.stat(target, signal)
+    if (info === undefined) {
+      throw new RemoteError('workspace-file/not-found', `no entry at "${path}"`, { path })
+    }
+    return {
+      absolutePath: this.ctx.fs.processPath(target),
+      version: info.version,
+      ...info.size === undefined ? {} : { bytes: info.size },
+    }
+  }
+
+  /** Resolve a path and require it to stay inside the Session's workspace root. */
+  private async containedTarget(workspaceFileScope: WorkspaceFileScope, path: string, signal: AbortSignal): Promise<FsTarget> {
+    if (path.length === 0) throw new RemoteError('gateway/bad-request', 'path is required', {})
+    const { workspaceRoot } = workspaceFileScope
+    const root = await this.ctx.fs.resolve(workspaceRoot, { signal })
+    const target = await this.ctx.fs.resolve(path, { cwd: workspaceRoot, signal })
+    if (!this.ctx.fs.contains(root, target)) {
+      throw new RemoteError('workspace-file/outside-workspace', `"${path}" is outside the workspace`, { path })
+    }
+    return target
+  }
+
+  /**
+   * Remove one file or directory inside the Session's workspace.
+   * @param workspaceFileScope - header-derived workspace root for the Session identity on the wire.
+   * @param path - workspace path, absolute or relative to the workspace root.
+   * @param signal - caller cancellation.
+   */
+  @Remote
+  async remove(workspaceFileScope: WorkspaceFileScope, path: string, signal: AbortSignal): Promise<void> {
+    const target = await this.containedTarget(workspaceFileScope, path, signal)
+    const info = await this.ctx.fs.stat(target, signal)
+    if (info === undefined) throw new RemoteError('workspace-file/not-found', `no entry at "${path}"`, { path })
+    await rm(this.ctx.fs.processPath(target), { recursive: true, force: false })
+  }
+
+  /**
+   * Create one directory inside the Session's workspace.
+   * @param workspaceFileScope - header-derived workspace root for the Session identity on the wire.
+   * @param path - workspace path, absolute or relative to the workspace root.
+   * @param signal - caller cancellation.
+   * @returns the new directory's absolute path and version.
+   */
+  @Remote
+  async mkdir(workspaceFileScope: WorkspaceFileScope, path: string, signal: AbortSignal): Promise<WorkspaceFileStat> {
+    const target = await this.containedTarget(workspaceFileScope, path, signal)
+    const existing = await this.ctx.fs.stat(target, signal)
+    if (existing !== undefined) throw new RemoteError('workspace-file/already-exists', `entry already exists at "${path}"`, { path })
+    await makeDir(this.ctx.fs.processPath(target), { recursive: true })
+    const info = await this.ctx.fs.stat(target, signal)
+    if (info === undefined) throw new RemoteError('workspace-file/not-found', `no entry at "${path}"`, { path })
+    return this.statOf(target, info)
+  }
+
+  /**
+   * Rename or move one entry inside the Session's workspace.
+   * @param workspaceFileScope - header-derived workspace root for the Session identity on the wire.
+   * @param oldPath - current workspace path.
+   * @param newPath - destination workspace path.
+   * @param signal - caller cancellation.
+   * @returns the destination's absolute path, version, and byte size.
+   */
+  @Remote
+  async rename(workspaceFileScope: WorkspaceFileScope, oldPath: string, newPath: string, signal: AbortSignal): Promise<WorkspaceFileStat> {
+    const source = await this.containedTarget(workspaceFileScope, oldPath, signal)
+    const destination = await this.containedTarget(workspaceFileScope, newPath, signal)
+    const sourceInfo = await this.ctx.fs.stat(source, signal)
+    if (sourceInfo === undefined) throw new RemoteError('workspace-file/not-found', `no entry at "${oldPath}"`, { path: oldPath })
+    const destinationInfo = await this.ctx.fs.stat(destination, signal)
+    if (destinationInfo !== undefined) throw new RemoteError('workspace-file/already-exists', `entry already exists at "${newPath}"`, { path: newPath })
+    await renamePath(this.ctx.fs.processPath(source), this.ctx.fs.processPath(destination))
+    const info = await this.ctx.fs.stat(destination, signal)
+    if (info === undefined) throw new RemoteError('workspace-file/not-found', `no entry at "${newPath}"`, { path: newPath })
+    return this.statOf(destination, info)
+  }
+
+  /**
+   * Search file and directory names inside the Session's workspace.
+   * @param workspaceFileScope - header-derived workspace root for the Session identity on the wire.
+   * @param query - name or path fragment to match.
+   * @param options - budgets and case sensitivity.
+   * @param signal - caller cancellation.
+   * @returns matching paths, their directory subset, and a truncation flag.
+   */
+  @Remote
+  async search(
+    workspaceFileScope: WorkspaceFileScope,
+    query: string,
+    options: WorkspaceFileSearchOptions,
+    signal: AbortSignal,
+  ): Promise<WorkspaceFileSearchResult> {
+    if (query.trim() === '') return { matches: [], dirs: [], truncated: false }
+    const { workspaceRoot } = workspaceFileScope
+    const rootTarget = await this.ctx.fs.resolve(workspaceRoot, { signal })
+    const rootPath = this.ctx.fs.processPath(rootTarget)
+    const maxMatches = options.maxMatches ?? 200
+    const maxVisited = options.maxVisited ?? 100000
+    const caseSensitive = options.caseSensitive === true
+    const needle = caseSensitive ? query : query.toLowerCase()
+    const directPath = query.startsWith('/') || query.startsWith('~') || query.startsWith('./') || query.startsWith('../') || query.includes('\\')
+    const matches: string[] = []
+    const dirs: string[] = []
+    let visited = 0
+    let truncated = false
+    const skip = new Set(['.git', 'node_modules', '.cache', 'dist', 'build', 'target'])
+
+    const push = (relativePath: string, isDir: boolean): void => {
+      if (matches.length >= maxMatches) {
+        truncated = true
+        return
+      }
+      matches.push(relativePath)
+      if (isDir) dirs.push(relativePath)
+    }
+
+    const walk = async (absoluteDir: string, relativeDir: string): Promise<void> => {
+      if (signal.aborted || truncated) return
+      let entries
+      try {
+        entries = await readdir(absoluteDir, { withFileTypes: true })
+      } catch {
+        return
+      }
+      for (const entry of entries) {
+        if (signal.aborted || truncated) return
+        if (visited >= maxVisited) {
+          truncated = true
+          return
+        }
+        visited += 1
+        if (skip.has(entry.name.toLowerCase())) continue
+        const childRelative = relativeDir === '' ? entry.name : `${relativeDir}/${entry.name}`
+        const isDir = entry.isDirectory() && !entry.isSymbolicLink()
+        let isMatch = false
+        if (directPath || query.includes('/') || query.includes('\\')) {
+          const haystack = caseSensitive ? childRelative : childRelative.toLowerCase()
+          isMatch = haystack.includes(needle.replace(/\\/g, '/'))
+        } else {
+          const haystack = caseSensitive ? entry.name : entry.name.toLowerCase()
+          isMatch = haystack.includes(needle)
+        }
+        if (isMatch) push(childRelative, isDir)
+        if (isDir) await walk(`${absoluteDir}/${entry.name}`, childRelative)
+      }
+    }
+
+    if (directPath) {
+      try {
+        const target = await this.ctx.fs.resolve(query, { cwd: workspaceRoot, signal })
+        if (this.ctx.fs.contains(rootTarget, target)) {
+          const info = await this.ctx.fs.stat(target, signal)
+          if (info !== undefined) {
+            const relativePath = this.ctx.fs.processPath(target).slice(rootPath.length).replace(/^[\\/]+/, '').replace(/\\/g, '/')
+            if (relativePath !== '') push(relativePath, info.type === 'directory')
+            return { matches, dirs, truncated }
+          }
+        }
+      } catch {
+        // Fall through to the tree walk for a missing direct target.
+      }
+    }
+
+    await walk(rootPath, '')
+    return { matches, dirs, truncated }
+  }
+
+  /**
+   * Read the Git working-tree status of the Session's workspace.
+   * @param workspaceFileScope - header-derived workspace root for the Session identity on the wire.
+   * @param signal - caller cancellation.
+   * @returns changed paths and the current branch when the workspace is a Git repository.
+   */
+  @Remote
+  async gitStatus(workspaceFileScope: WorkspaceFileScope, signal: AbortSignal): Promise<WorkspaceFileGitStatus> {
+    const { workspaceRoot } = workspaceFileScope
+    const exec = promisify(execFile)
+    let branch: string | null = null
+    try {
+      const branchResult = await exec('git', ['rev-parse', '--abbrev-ref', 'HEAD'], { cwd: workspaceRoot, signal })
+      branch = branchResult.stdout.trim() || null
+    } catch {
+      branch = null
+    }
+    let changes: WorkspaceFileGitChange[] = []
+    try {
+      const statusResult = await exec('git', ['status', '--porcelain=v1', '-z'], { cwd: workspaceRoot, signal })
+      const entries = statusResult.stdout.split('\u0000').filter(entry => entry !== '')
+      changes = entries.map((entry) => {
+        const code = entry.slice(0, 2)
+        const path = entry.slice(3)
+        const staged = code[0] !== ' ' && code[0] !== '?'
+        let status: WorkspaceFileGitChange['status'] = 'modified'
+        if (code === '??') status = 'untracked'
+        else if (code.includes('A')) status = 'added'
+        else if (code.includes('D')) status = 'deleted'
+        else if (code.includes('R')) status = 'renamed'
+        else if (code.includes('U')) status = 'conflict'
+        else status = 'modified'
+        return { path, status, staged }
+      })
+    } catch {
+      changes = []
+    }
+    return { changes, branch }
+  }
+
+  /**
+   * Read one Git diff.
+   * @param workspaceFileScope - header-derived workspace root for the Session identity on the wire.
+   * @param path - repository-relative path to diff.
+   * @param staged - whether to diff the staged version.
+   * @param signal - caller cancellation.
+   * @returns the unified diff text.
+   */
+  @Remote
+  async gitDiff(workspaceFileScope: WorkspaceFileScope, path: string, staged: boolean, signal: AbortSignal): Promise<WorkspaceFileGitDiff> {
+    const { workspaceRoot } = workspaceFileScope
+    const exec = promisify(execFile)
+    const args = staged
+      ? ['diff', '--cached', '--', path]
+      : ['diff', '--', path]
+    let text = ''
+    let truncated = false
+    try {
+      const result = await exec('git', args, { cwd: workspaceRoot, signal, maxBuffer: 1024 * 1024 })
+      text = result.stdout
+    } catch (error) {
+      const stdout = typeof error === 'object' && error !== null && 'stdout' in error ? String((error as { stdout?: unknown }).stdout ?? '') : ''
+      text = stdout
+    }
+    if (text.length > 200000) {
+      text = text.slice(0, 200000)
+      truncated = true
+    }
+    return { path, staged, text, truncated }
+  }
+
+  /**
+   * Stage one or more repository-relative paths.
+   * @param workspaceFileScope - header-derived workspace root for the Session identity on the wire.
+   * @param paths - repository-relative paths to stage.
+   * @param signal - caller cancellation.
+   * @returns nothing.
+   */
+  @Remote
+  async gitStage(workspaceFileScope: WorkspaceFileScope, paths: readonly string[], signal: AbortSignal): Promise<void> {
+    const { workspaceRoot } = workspaceFileScope
+    const normalized = paths.map(path => this.normalizeGitPath(path))
+    if (normalized.length === 0) return
+    const exec = promisify(execFile)
+    try {
+      await exec('git', ['add', '--', ...normalized], { cwd: workspaceRoot, signal })
+    } catch (error) {
+      throw new RemoteError('workspace-file/git-command-failed', `git add failed: ${String(error)}`, { message: String(error) })
+    }
+  }
+
+  /**
+   * Unstage one or more repository-relative paths.
+   * @param workspaceFileScope - header-derived workspace root for the Session identity on the wire.
+   * @param paths - repository-relative paths to unstage.
+   * @param signal - caller cancellation.
+   * @returns nothing.
+   */
+  @Remote
+  async gitUnstage(workspaceFileScope: WorkspaceFileScope, paths: readonly string[], signal: AbortSignal): Promise<void> {
+    const { workspaceRoot } = workspaceFileScope
+    const normalized = paths.map(path => this.normalizeGitPath(path))
+    if (normalized.length === 0) return
+    const exec = promisify(execFile)
+    try {
+      await exec('git', ['reset', '-q', 'HEAD', '--', ...normalized], { cwd: workspaceRoot, signal })
+    } catch (error) {
+      throw new RemoteError('workspace-file/git-command-failed', `git reset failed: ${String(error)}`, { message: String(error) })
+    }
+  }
+
+  /**
+   * Create one Git commit with the supplied message.
+   * @param workspaceFileScope - header-derived workspace root for the Session identity on the wire.
+   * @param message - commit message.
+   * @param signal - caller cancellation.
+   * @returns the new commit identity when available.
+   */
+  @Remote
+  async gitCommit(workspaceFileScope: WorkspaceFileScope, message: string, signal: AbortSignal): Promise<WorkspaceFileGitCommitResult> {
+    const { workspaceRoot } = workspaceFileScope
+    const exec = promisify(execFile)
+    try {
+      await exec('git', ['commit', '-m', message], { cwd: workspaceRoot, signal })
+    } catch (error) {
+      throw new RemoteError('workspace-file/git-command-failed', `git commit failed: ${String(error)}`, { message: String(error) })
+    }
+    let commitId: string | null = null
+    try {
+      const result = await exec('git', ['rev-parse', 'HEAD'], { cwd: workspaceRoot, signal })
+      commitId = result.stdout.trim() || null
+    } catch {
+      commitId = null
+    }
+    return { commitId }
+  }
+
+  /** Validate one repository-relative path used by Git commands. */
+  private normalizeGitPath(path: string): string {
+    if (typeof path !== 'string' || path === '' || path.includes('\u0000')) {
+      throw new RemoteError('workspace-file/bad-path', 'Git path must be a non-empty repository-relative path', { path })
+    }
+    const segments = path.replace(/\\/g, '/').split('/')
+    if (segments.some(segment => segment === '' || segment === '.' || segment === '..')) {
+      throw new RemoteError('workspace-file/bad-path', 'Git path must be a non-empty repository-relative path', { path })
+    }
+    return segments.join('/')
   }
 
   /**

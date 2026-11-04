@@ -64,6 +64,7 @@ async function provideSlotFaces(ctx: Context): Promise<void> {
     name: 'root',
     children: {
       'conversation.session.header.lineage': { kind: 'single', scope: 'session' },
+      'conversation.session.header.utilities': { kind: 'list', scope: 'session' },
       'conversation.session.header.actions': { kind: 'list', scope: 'session' },
       'conversation.composer': { kind: 'chain', scope: 'session' },
     },
@@ -85,7 +86,7 @@ async function fullBench(sessions: SessionSummary[]) {
       face.actionCalls.push({ method: 'openResource', args: [address, options] })
     },
   } as never)
-  ctx.provide('remote', { $on: () => () => {} } as never)
+  ctx.provide('remote', { session: { sidechatStart: async () => ({ ok: true, value: { sessionId: sid('side') } }) }, $on: () => () => {} } as never)
   ctx.provide('configForms', { developerTools: { enabled: createSnapshotStore(true) }, get: () => stubConfigForm().scope } as never)
   await provideSlotFaces(ctx)
   await ctx.plugin({ inject: localeInject, apply: applyLocale }).await()
@@ -105,11 +106,12 @@ const FAMILY: SessionSummary[] = [
 
 describe('apply', () => {
   it('declares the services it binds', () => {
-    expect(inject).toEqual(['sessions', 'uiWorkspace', 'slots', 'locale', 'sidebarRight'])
+    expect(inject).toEqual(['sessions', 'uiWorkspace', 'slots', 'locale', 'sidebarRight', 'remote'])
   })
 
   it('registers catalog actions and selects read-only subagent composers from session facts', async () => {
     const { ctx, face } = await fullBench(FAMILY)
+
     const catalogEntry = ctx.slots.entries('conversation.session.header.lineage')
       .find(entry => entry.component === SubagentHeaderLineage)!
     const actions = (catalogEntry.inject as unknown as (id: SessionId) => SubagentCatalogInjected)(sid('parent'))

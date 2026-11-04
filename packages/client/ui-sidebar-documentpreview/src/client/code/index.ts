@@ -2,7 +2,7 @@
 import type { Context } from '@deepseek-ai/cordis'
 import { CODE_HIGHLIGHT_EXTENSIONS } from '@deepseek-ai/dsh-client-ui-primitives'
 import type {} from '../index.ts'
-import { CodeBody } from './CodeBody.tsx'
+import { CodeBody, setCodeRemote } from './CodeBody.tsx'
 import { en, zh } from './locales.ts'
 
 const ID = '@deepseek-ai/dsh-client-ui-sidebar-documentpreview/code'
@@ -20,6 +20,7 @@ export function apply(ctx: Context): void {
     loading: 'text-pages',
     wrap: true,
   }))
+  setCodeRemote(ctx.remote)
   ctx.effect(() => ctx.slots.inject('sidebar.right.tab.document', () => ctx.slots.register(
     { name: 'sidebar.right.tab.document', key: ID, locale: NS }, CodeBody,
   )))
