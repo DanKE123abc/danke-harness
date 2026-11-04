@@ -276,6 +276,10 @@ export function SidebarRoot({
         </button>
       </Tooltip>
 
+      {/* Work / Code mode switch: rendered only in the expanded column; the
+          occupant owns the selected mode and the main-panel switch. */}
+      {wide && <div className={css.modeSwitchArea}>{renderSlot('sidebar.mode.switch', { wide })}</div>}
+
       {panels.length > 0 && (
         <nav className={css.panelList} aria-label={t('panels.label')}>
           {panels.map(({ id, label }) => (
