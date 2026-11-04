@@ -1,15 +1,14 @@
-/** Account settings renders safe Host state and explicit login actions. */
+/** Account settings renders safe Host state. */
 import { Big } from 'big.js'
-import { useEffect, useRef, useState, type MouseEvent } from 'react'
-import { Button, IconRightUpOutlineRegular } from '@deepseek-ai/dsh-client-ui-primitives'
-import type { AccountDetails, AccountView, SignInAttemptId } from '@deepseek-ai/dsh-deepseek-account/types'
+import { useEffect, useRef, type MouseEvent } from 'react'
+import { IconRightUpOutlineRegular } from '@deepseek-ai/dsh-client-ui-primitives'
+import type { AccountDetails, AccountView } from '@deepseek-ai/dsh-deepseek-account/types'
 import type { PropsRuntime, PropsLocale, InjectFace, HostObservable } from '@deepseek-ai/dsh-client-ui-slots'
 import type { ThemeSnapshot } from '@deepseek-ai/dsh-client-ui-theme/client'
 import type { PlatformPage, PlatformPages } from './platform-pages.ts'
 import { formatBalance } from './formatBalance.ts'
 import { AccountAvatar } from './AccountAvatar.tsx'
 import type { AccountAvatarSnapshot } from './account-avatar.ts'
-import { authorizeUrlWithTheme } from './authorize-url.ts'
 import type { BonusNotice } from './bonus-notices.ts'
 import css from './AccountSection.module.css'
 
@@ -26,12 +25,6 @@ export interface AccountSnapshot {
   avatar: AccountAvatarSnapshot | undefined
   /** Whether the state stream failed. */
   failed: boolean
-  /** Explicitly opened account dialog outside onboarding. */
-  loginVisible?: boolean
-  /** Latest explicit start request failed before a Host state was available. */
-  loginFailed?: boolean
-  /** Model credential onboarding owns the login dialog and delays bonus notices while mounted. */
-  onboarding?: boolean
   /** Desktop introduction covers the workspace during loading, saving, and exit animation.
    * True on Desktop until shell.overlay reports visibility, false in browsers; Desktop layouts must render that slot.
    */
@@ -58,7 +51,7 @@ export interface AccountSectionInjected {
   /** Account stream owned by the Host and theme snapshots published by the renderer, observed through framework hooks. */
   hooks: {
     account: HostObservable<AccountSnapshot>
-    /** Palette the Platform login pages follow. */
+    /** Palette the Platform pages follow. */
     theme: HostObservable<ThemeSnapshot>
   }
   /**
@@ -67,20 +60,10 @@ export interface AccountSectionInjected {
    * @returns after the account queries settle; image loading completes independently.
    */
   refreshAccount: () => Promise<void>
-  /** Open the external support questionnaire with the account, build and environment sampled by this click. */
-  contactUs: () => void
-  /** Open or dismiss the login dialog. */
-  showLogin: (visible: boolean) => void
-  /** Claim dialog ownership for the onboarding step. */
-  setOnboarding: (active: boolean) => void
   /** @param orderId - notice whose card finished a presented frame while visible. */
   bonusNoticeShown: (orderId: BonusNotice['orderId']) => void
   /** @param orderId - notice the user closed. */
   bonusNoticeDismissed: (orderId: BonusNotice['orderId']) => void
-  /** @returns after the login attempt is created. */
-  start: () => Promise<void>
-  /** @param id - attempt to cancel. @returns after cancellation or an already-admitted commit. */
-  cancel: (id: SignInAttemptId) => Promise<void>
   /** @returns whether a running task currently uses the account token. */
   hasRunningAccountTasks: () => Promise<boolean>
   /** @returns after local account credentials are removed. */
@@ -90,22 +73,16 @@ export interface AccountSectionInjected {
 export type AccountSectionProps =
   PropsRuntime<'settings.section'> & PropsLocale<'settings.account'> & InjectFace<AccountSectionInjected>
 /** @param props - localized actions, account subscription, and the shared Platform page channel. @returns account settings UI. */
-export function AccountSection({ t, useAccount, useTheme, start, cancel, openPlatformPage, avatarFailed }: AccountSectionProps) {
+export function AccountSection({ t, useAccount, openPlatformPage, avatarFailed }: AccountSectionProps) {
   const { view: state, details, avatar, failed: streamFailed } = useAccount(value => value)
-  const colorScheme = useTheme(snapshot => snapshot.active.colorScheme)
   // The shared host owns the native view; this page holds only its own request,
   // and only while it is the latest owner.
   const releasePage = useRef<(() => void) | undefined>(undefined)
-  const [failed, setFailed] = useState(false)
-  const [busy, setBusy] = useState(false)
   const profile = details?.profile?.status === 'ready' ? details.profile.value : undefined
   const wallets = details?.balance?.status === 'ready' ? details.balance.value : undefined
   const bonusWallets = details?.balance?.status === 'ready'
     ? details.balance.bonusWallets.filter(wallet => new Big(wallet.balance).gt(0)) : []
   const showBonusRow = details?.balance?.status !== 'ready' || bonusWallets.length > 0
-  const attempt = state?.attempt
-  const active = attempt !== null && attempt !== undefined
-    && ['initializing', 'waiting-browser', 'exchanging', 'committing'].includes(attempt.phase)
   const signedIn = state?.status === 'credential-stored'
   useEffect(() => () => { releasePage.current?.(); releasePage.current = undefined }, [])
   useEffect(() => {
@@ -116,11 +93,6 @@ export function AccountSection({ t, useAccount, useTheme, start, cancel, openPla
   const showPage = (open: PlatformPages['open'], page: PlatformPage) => {
     releasePage.current?.()
     releasePage.current = open(page, () => { releasePage.current = undefined })
-  }
-  const run = async (action: () => Promise<void>) => {
-    setBusy(true)
-    setFailed(false)
-    try { await action() } catch { setFailed(true) } finally { setBusy(false) }
   }
   /**
    * @param event - click on a Platform destination link.
@@ -142,21 +114,14 @@ export function AccountSection({ t, useAccount, useTheme, start, cancel, openPla
     <a className={className} href={state?.links.usageUrl} aria-disabled={state === undefined}
       target="_blank" rel="noreferrer" onClick={openUsage}>{label}</a>
   )
-  const status = failed || streamFailed || attempt?.phase === 'failed' ? t('failed')
-    : attempt?.phase === 'expired' ? t('expired')
-      : active ? t(attempt.phase === 'initializing' ? 'initializing' : attempt.phase === 'waiting-browser' ? 'waiting' : 'completing')
-        : signedIn ? profile?.contact ?? t(details?.profile === undefined ? 'loading' : 'profileUnavailable') : t('signInDescription')
-  if (!signedIn && !active) return (
+  const status = streamFailed ? t('failed')
+    : signedIn ? profile?.contact ?? t(details?.profile === undefined ? 'loading' : 'profileUnavailable') : t('signedOut')
+  if (!signedIn) return (
     <section className={css.signedOut} aria-label={t('nav')}>
       <div className={css.signedOutContent}>
         <div className={css.signedOutCopy}>
-          <span className={css.signedOutTitle}>{t('settingsSignedOutTitle')}</span>
-          <span className={css.signedOutDescription} role="status">
-            {failed || streamFailed ? t('failed') : t('settingsSignedOutDescription')}
-          </span>
+          <span className={css.signedOutTitle} role="status">{t('signedOut')}</span>
         </div>
-        <Button variant="primary" className={css.signInButton} disabled={busy || state === undefined}
-          onClick={() => { void run(start) }}>{t('signIn')}</Button>
       </div>
     </section>
   )
@@ -164,38 +129,30 @@ export function AccountSection({ t, useAccount, useTheme, start, cancel, openPla
     <section className={css.section} aria-label={t('nav')}>
       <div className={css.card}>
         <div className={css.identity}>
-          <span className={css.avatar} data-avatar-status={signedIn ? avatar?.status : undefined}>
-            <AccountAvatar avatar={signedIn ? avatar : undefined} avatarFailed={avatarFailed} />
+          <span className={css.avatar} data-avatar-status={avatar?.status}>
+            <AccountAvatar avatar={avatar} avatarFailed={avatarFailed} />
           </span>
           <div className={css.identityCopy}>
-            <span className={css.name}>{signedIn ? profile?.name ?? t('signedIn') : t('signedOut')}</span>
+            <span className={css.name}>{profile?.name ?? t('signedIn')}</span>
             <span className={css.status} role="status">{status}</span>
           </div>
         </div>
-        {signedIn && <a className={css.accountInfo} href={new URL('/', state.links.usageUrl).href} target="_blank" rel="noopener noreferrer">
+        <a className={css.accountInfo} href={new URL('/', state.links.usageUrl).href} target="_blank" rel="noopener noreferrer">
           {t('accountInfo')}<IconRightUpOutlineRegular size={12} />
-        </a>}
+        </a>
       </div>
-      {active && <div className={css.actions}>
-        {attempt.authorizeUrl && <a className={css.linkButton} href={authorizeUrlWithTheme(attempt.authorizeUrl, colorScheme)}
-          target="_blank" rel="noreferrer">
-          {t('open')}
-        </a>}
-        <Button variant="outline" disabled={busy || attempt.phase === 'committing'}
-          onClick={() => { void run(() => cancel(attempt.id)) }}>{t('cancel')}</Button>
-      </div>}
       <div className={css.balanceCard}>
         <div className={css.row}>
           <span>{t('balance')}</span>
-          {signedIn && wallets !== undefined && wallets.length > 0
+          {wallets !== undefined && wallets.length > 0
             ? <span className={css.amount}>{wallets.map(wallet => <span key={wallet.currency}>
               {formatBalance(wallet.balance, wallet.currency === 'CNY' ? '¥' : '$')}
             </span>)}</span>
-            : !signedIn || details?.balance === undefined
-              ? <span className={css.unavailable}>{t(!signedIn ? 'balanceSignedOut' : 'loading')}</span>
+            : details?.balance === undefined
+              ? <span className={css.unavailable}>{t('loading')}</span>
               : platformLink(t('balanceUnavailable'), css.unavailableLink)}
         </div>
-        {signedIn && showBonusRow && <>
+        {showBonusRow && <>
           <div className={css.divider} />
           <div className={css.row}>
             <span>{t('bonusBalance')}</span>

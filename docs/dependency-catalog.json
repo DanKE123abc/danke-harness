@@ -2221,18 +2221,6 @@
       ]
     },
     {
-      "name": "@deepseek-ai/dsh-session-log-deepseek",
-      "version": "0.1.5-rc.2",
-      "installations": [
-        {
-          "location": "node_modules/@deepseek-ai/dsh-session-log-deepseek",
-          "direct": false,
-          "optional": false,
-          "peer": false
-        }
-      ]
-    },
-    {
       "name": "@deepseek-ai/dsh-session-log-export",
       "version": "0.1.5-rc.2",
       "installations": [

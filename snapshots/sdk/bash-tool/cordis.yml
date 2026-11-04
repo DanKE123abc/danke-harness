@@ -24,6 +24,5 @@
     toolName: subagent
     maxDepth: 1
 
-- id: session-log-deepseek
   config:
     enabled: false

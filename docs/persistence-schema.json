@@ -22751,7 +22751,7 @@
       "digest": "17d1afb770d9941936130996da00dc86782cfef731d8d6526162c301256a4ac3",
       "names": [],
       "sources": [
-        "packages/core/session/src/types.ts:428"
+        "packages/core/session/src/types.ts:442"
       ]
     },
     {
@@ -23205,7 +23205,7 @@
         "packages/core/session/src/types.ts#SurfaceOp"
       ],
       "sources": [
-        "packages/core/session/src/types.ts:463"
+        "packages/core/session/src/types.ts:477"
       ]
     },
     {
@@ -24537,7 +24537,7 @@
       "digest": "8bb8c3751a6ce64b61aba1ec7ae798c00a5803c4d868a0430873216c6569ed52",
       "names": [],
       "sources": [
-        "packages/session/session-log-deepseek/src/types.ts:81"
+        "packages/core/session/src/types.ts:410"
       ]
     },
     {
@@ -25342,7 +25342,7 @@
       "digest": "bcf0caf62d964b2fcf5404bd5c909cfa9a21c3f3c96e6b7e36d9e33565223825",
       "names": [],
       "sources": [
-        "packages/core/session/src/types.ts:465"
+        "packages/core/session/src/types.ts:479"
       ]
     },
     {
