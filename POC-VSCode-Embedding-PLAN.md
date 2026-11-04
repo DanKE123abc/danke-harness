@@ -53,7 +53,7 @@
 
 - **Phase 0**：VS Code Web 静态资源可加载（`/vscode` 路由 + bootstrap）
 - **Phase 1**：`ui-vscode-panel` 注册 `code` 全局面板（iframe 容器）
-- **Phase 2**：文件系统桥接（`dsh://` provider ↔ Host workspace-files/fs）
+- **Phase 2**：文件系统桥接（`dsh://` provider ↔ Host workspace-files/fs）+ 用户数据重定向到 `$DSH_HOME/codemode/`
 - **Phase 3**：主题/快捷键/AI 协同
 - **Phase 4**：验证与打包
 
@@ -72,7 +72,8 @@
 **仍需补**：
 
 - [ ] `apps/web/vscode-extension/`（`dsh-workspace` 文件系统 provider 扩展）——Phase 2 主体，当前缺失（`isDirectory` 保护，不阻塞构建）
-- [ ] `ui-vscode-panel` 包注册 `code` 全局面板（iframe）——Phase 1
+- [x] `ui-vscode-panel` 包注册 `code` 全局面板（iframe）——Phase 1（已提交 `d838a1b`）
+- [ ] 内嵌 VS Code 用户数据重定向到 `$DSH_HOME/codemode/`（宿主 FileSystemProvider 回溯 `vscode-userdata` 协议）——Phase 2
 - [ ] 启动 `dsh web` 实测 `/vscode` 加载（需先解除 worktree 依赖 junction 或合回主树再验证，避免污染主树）
 
 ---
@@ -147,6 +148,9 @@
 
 ### 5.1 事实（已核实）
 - Host `api/workspace-files` 目前只有 `readBytes` + `list`，**没有 write**。
+- 内嵌 VS Code 的用户数据（设置、快捷键、扩展、全局状态、空临时工作区）统一存储在 `$DSH_HOME/codemode/`，
+  通过宿主 FileSystemProvider 回溯 `vscode-userdata`（或等价）协议，取代工作台默认的 IndexedDB 后端。
+  凭据与秘密继续经凭据 seam 流动，不进入 `codemode/`。
 - Host `fs` 有 `editText`（含版本守卫），可作写路径。
 
 ### 5.2 VS Code 侧 provider

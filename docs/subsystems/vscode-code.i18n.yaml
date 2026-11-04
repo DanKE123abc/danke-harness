@@ -1,0 +1,22 @@
+# Bilingual-pair consistency record for vscode-code.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write docs/subsystems/vscode-code.md
+/embedded-vs-code-code-mode:
+  en: 0f9c94b8358df2a9
+  zh: d7fea5fbe538c7ee
+/embedded-vs-code-code-mode/plugin-composition:
+  en: 13d5e15c1a7f4dc7
+  zh: 7f2b73a6a182515e
+/embedded-vs-code-code-mode/data-storage:
+  en: b2fe36cae871a52e
+  zh: 8b39192c1193bf7e
+/embedded-vs-code-code-mode/workbench-bootstrap:
+  en: a56510aba9f4674e
+  zh: ff1e3513ca44b85b
+/embedded-vs-code-code-mode/why-plugins-not-a-special-case:
+  en: a8a28335c324f3a3
+  zh: 5202e03e2134d41d
+/embedded-vs-code-code-mode/acceptance:
+  en: dfd2b52183485a68
+  zh: 1079acdce2f729a8
