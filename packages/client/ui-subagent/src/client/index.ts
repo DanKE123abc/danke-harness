@@ -1,9 +1,12 @@
 /** Web subagent catalog, navigation, and addressed-session composer owner. */
 import type { Context as ClientContext } from '@deepseek-ai/cordis'
+import React from 'react'
+import type { ReactNode } from 'react'
 import type { SubagentAddress } from '@deepseek-ai/dsh-subagent/client'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
+import type { PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 import type { ComposerChainProps } from '@deepseek-ai/dsh-client-ui-conversation/client'
-import { SubagentCatalogAction, SubagentHeaderLineage, type SubagentCatalogInjected } from './SubagentHeaderLineage.tsx'
+import { SubagentCatalogAction, SubagentHeaderLineage, type SubagentCatalogInjected, type SubagentHeaderLineageProps } from './SubagentHeaderLineage.tsx'
 import {
   SubagentReadOnlyComposer, type SubagentReadOnlyMatch,
 } from './SubagentReadOnlyComposer.tsx'
@@ -54,9 +57,44 @@ function selectReadOnlySubagent(owner: ComposerChainProps): SubagentReadOnlyMatc
  */
 export function apply(ctx: ClientContext): void {
   ctx.effect(() => ctx.locale.register(NS, { zh, en }), 'ui-subagent: dictionaries')
+  const t = ctx.locale.bind(NS)
   ctx.inject(['resources', 'sidebarRightTabs'], (scope) => {
     registerSidebarChat(scope, ctx.locale.bind(NS))
+    const TASKS_ID_LOCAL = '@deepseek-ai/dsh-client-ui-subagent-tasks'
+    ctx.effect(() => scope.sidebarRightTabs.register({
+      id: TASKS_ID_LOCAL,
+      kind: 'tasks',
+      priority: 'builtin',
+      title: () => t('tasks'),
+    }), 'ui-subagent: tasks tab type')
   })
+  const TASKS_ID = '@deepseek-ai/dsh-client-ui-subagent-tasks'
+  function TasksTab(props: PropsRuntime<'sidebar.right.pane.tab'> & PropsLocale<typeof NS>): ReactNode {
+    const catalogActions: SubagentCatalogInjected = {
+      openChild(address: SubagentAddress) {
+        ctx.uiWorkspace.openSession(address)
+      },
+      openChildAside(address: SubagentAddress) {
+        ctx.sidebarRight.openResource(subagentChatAddress(address), {
+          kind: 'subagentchat',
+          preferNewPane: true,
+        })
+      },
+      refreshProjection(parentSessionId: SessionId) {
+        void ctx.sessions.refreshProjections(parentSessionId)
+      },
+    }
+    return React.createElement(SubagentHeaderLineage, {
+      ...(props as unknown as SubagentHeaderLineageProps),
+      ...catalogActions,
+      t,
+    })
+  }
+  ctx.effect(() => ctx.slots.inject('sidebar.right.pane.tab', () => ctx.slots.register({
+    name: 'sidebar.right.pane.tab',
+    key: TASKS_ID,
+    locale: NS,
+  }, TasksTab)), 'ui-subagent: tasks tab body')
   const catalogActions = (_parentSessionId: SessionId): SubagentCatalogInjected => ({
     openChild(address: SubagentAddress) {
       ctx.uiWorkspace.openSession(address)
