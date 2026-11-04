@@ -1,6 +1,10 @@
 /** Register interactive terminal tabs and explicit process cleanup with the sidebar. */
 import type { ShortcutCommandId } from '@deepseek-ai/dsh-client-shortcuts/client'
 import type { Context } from '@deepseek-ai/cordis'
+import React from 'react'
+import { useSyncExternalStore } from 'react'
+import type { ReactNode } from 'react'
+import { createSnapshotStore } from '@deepseek-ai/dsh-client-store'
 import type { WebTerminalId } from '@deepseek-ai/dsh-api-terminal-controller/types'
 import type { SidebarRightTabParamsMap, TabId } from '@deepseek-ai/dsh-client-ui-sidebar-right/client'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
@@ -127,4 +131,53 @@ export function apply(ctx: Context): void {
   //     retryClose: (terminalId) => { ctx.webTerminals.retryClose(terminalId) },
   //   }),
   // }, TerminalCleanup)), 'ui-sidebar-terminal.cleanup')
+
+  const bottomOpen = createSnapshotStore(false)
+  const bottomContentIds = new Map<SessionId, string>()
+  function BottomToggle(): ReactNode {
+    const open = useSyncExternalStore(bottomOpen.subscribe, bottomOpen.getSnapshot)
+    return React.createElement('button', { type: 'button', onClick: () => { bottomOpen.set(!open) } }, open ? 'Hide terminal' : 'Terminal')
+  }
+  ctx.effect(() => ctx.slots.inject('conversation.session.header.utilities', () => ctx.slots.register({
+    name: 'conversation.session.header.utilities',
+    id: `${id}-bottom-toggle`,
+    order: 30,
+    locale: namespace,
+  }, BottomToggle)), 'ui-sidebar-terminal.bottom-toggle')
+
+  function BottomWorkbench(): ReactNode {
+    const open = useSyncExternalStore(bottomOpen.subscribe, bottomOpen.getSnapshot)
+    const uiSession = ctx.get('uiSession') as { adapter: { current: { getSnapshot: () => { key: unknown } } } } | undefined
+    const sessionId = uiSession?.adapter.current.getSnapshot().key as SessionId | undefined
+    if (!open || sessionId === undefined) return null
+    let contentId = bottomContentIds.get(sessionId)
+    if (contentId === undefined) {
+      contentId = `${id}-bottom-${sessionId}`
+      bottomContentIds.set(sessionId, contentId)
+    }
+    const model = ctx.webTerminals.view(sessionId, 'bottom', contentId)
+    const useTerminal = () => useSyncExternalStore(model.state.subscribe, model.state.getSnapshot)
+    const theme = {
+      getSnapshot: () => ctx.theme.getTheme(),
+      subscribe: (listener: () => void) => ctx.on('theme/change', listener),
+    }
+    const injected: TerminalBodyInjected = {
+      view: (key: string) => ctx.webTerminals.view(sessionId, key, contentId),
+      keyedHooks: { terminal: (key: string) => ctx.webTerminals.view(sessionId, key, contentId).state },
+      hooks: { theme },
+    }
+    return React.createElement('div', {
+      style: { position: 'fixed', left: 0, right: 0, bottom: 0, height: 220, zIndex: 1000, background: 'var(--color-background, #fff)' },
+    }, React.createElement(LazyTerminalBody, {
+      useTabInfo: () => ({ tab: { id: contentId, visible: true, actions: { openTab: () => {} } } }),
+      useTerminal,
+      t,
+      ...injected,
+    } as React.ComponentProps<typeof LazyTerminalBody>))
+  }
+  ctx.effect(() => ctx.slots.inject('shell.overlay', () => ctx.slots.register({
+    name: 'shell.overlay',
+    id: `${id}-bottom`,
+    locale: namespace,
+  }, BottomWorkbench)), 'ui-sidebar-terminal.bottom-workbench')
 }
