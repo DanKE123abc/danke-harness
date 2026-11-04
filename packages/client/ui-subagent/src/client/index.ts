@@ -66,6 +66,7 @@ export function apply(ctx: ClientContext): void {
       kind: 'tasks',
       priority: 'builtin',
       title: () => t('tasks'),
+      guide: [{ id: 'tasks', order: 20, title: () => t('tasks') }],
     }), 'ui-subagent: tasks tab type')
   })
   const TASKS_ID = '@deepseek-ai/dsh-client-ui-subagent-tasks'
