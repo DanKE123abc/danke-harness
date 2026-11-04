@@ -20,7 +20,7 @@ class FakeResponse extends Writable {
   headers: Record<string, string> = {}
   readonly chunks: Buffer[] = []
   ended = false
-  destroyed = false
+  override destroyed = false
   /** Test hook: end() throws to model a broken client connection. */
   failOnEnd = false
   writeHead(status: number, headers?: Record<string, string | number>): this {
@@ -130,7 +130,7 @@ describe('serveVscodeAsset', () => {
 
   it('destroys the response when the file stream fails mid-read', async () => {
     const failing = new Readable({ read(): void { this.destroy(new Error('disk gone')) } })
-    vi.mocked(createReadStream).mockReturnValueOnce(failing)
+    vi.mocked(createReadStream).mockReturnValueOnce(failing as never)
     const res = new FakeResponse()
     await serveVscodeAsset(fakeRequest('GET', `${VSCODE_PATH}/index.html`), res as never, root)
     await vi.waitFor(() => { expect(res.destroyed).toBe(true) })

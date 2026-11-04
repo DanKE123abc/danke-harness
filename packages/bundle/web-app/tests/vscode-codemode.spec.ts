@@ -6,14 +6,20 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { apply, handleCodemode } from '../src/vscode-codemode.ts'
 import { Context } from '@deepseek-ai/cordis'
+import type { IncomingMessage } from 'node:http'
 import { Readable } from 'node:stream'
 
-function fakeReq(method: string, url: string, body?: Buffer): Record<string, unknown> {
-  const r = new Readable({ read() { if (body) { this.push(body); this.push(null) } else this.push(null) } })
-  r.method = method
-  r.url = url
-  r.headers = {}
-  return r
+/** Turn a body stream into the request the handler reads: method, URL, and headers. */
+function asRequest(stream: Readable, method: string, url: string): IncomingMessage {
+  return Object.assign(stream, { method, url, headers: {} }) as never
+}
+
+function fakeReq(method: string, url: string, body?: Buffer): IncomingMessage {
+  return asRequest(
+    new Readable({ read() { if (body) { this.push(body); this.push(null) } else this.push(null) } }),
+    method,
+    url,
+  )
 }
 
 class FakeRes {
@@ -111,12 +117,13 @@ describe('handleCodemode', () => {
   it('handles string chunks in PUT body', async () => {
     const root = mkdtempSync(join(tmpdir(), 'cm-'))
     try {
-      const r = new Readable({ objectMode: true, read() { this.push('hi'); this.push(null) } })
-      r.method = 'PUT'
-      r.url = '/vscode-userdata/str.txt'
-      r.headers = {}
+      const r = asRequest(
+        new Readable({ objectMode: true, read() { this.push('hi'); this.push(null) } }),
+        'PUT',
+        '/vscode-userdata/str.txt',
+      )
       const res = new FakeRes()
-      await handleCodemode(r as never, res as never, root)
+      await handleCodemode(r, res as never, root)
       expect(res.statusCode).toBe(204)
       expect(readFileSync(join(root, 'str.txt'), 'utf8')).toBe('hi')
     } finally { rmSync(root, { recursive: true, force: true }) }
