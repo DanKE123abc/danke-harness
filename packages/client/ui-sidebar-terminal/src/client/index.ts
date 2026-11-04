@@ -173,7 +173,7 @@ export function apply(ctx: Context): void {
       useTerminal,
       t,
       ...injected,
-    } as React.ComponentProps<typeof LazyTerminalBody>))
+    } as unknown as React.ComponentProps<typeof LazyTerminalBody>))
   }
   ctx.effect(() => ctx.slots.inject('shell.overlay', () => ctx.slots.register({
     name: 'shell.overlay',
