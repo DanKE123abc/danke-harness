@@ -1,6 +1,7 @@
 /** Web subagent catalog, navigation, and addressed-session composer owner. */
 import type { Context as ClientContext } from '@deepseek-ai/cordis'
 import React from 'react'
+import { useState } from 'react'
 import type { ReactNode } from 'react'
 import type { SubagentAddress } from '@deepseek-ai/dsh-subagent/client'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
@@ -34,7 +35,7 @@ export type {
 } from './SubagentReadOnlyComposer.tsx'
 
 /** Required services for subagent presentation and navigation. */
-export const inject = ['sessions', 'uiWorkspace', 'slots', 'locale', 'sidebarRight']
+export const inject = ['sessions', 'uiWorkspace', 'slots', 'locale', 'sidebarRight', 'remote']
 
 /** Claim the composer for one-shot history or an unavailable continuation owner. */
 function selectReadOnlySubagent(owner: ComposerChainProps): SubagentReadOnlyMatch | null {
@@ -96,6 +97,33 @@ export function apply(ctx: ClientContext): void {
     key: TASKS_ID,
     locale: NS,
   }, TasksTab)), 'ui-subagent: tasks tab body')
+  function SideChatUtility(props: PropsRuntime<'conversation.session.header.utilities'> & PropsLocale<typeof NS>): ReactNode {
+    const [pending, setPending] = useState(false)
+    const onClick = async (): Promise<void> => {
+      setPending(true)
+      try {
+        const sidechat = ctx.remote?.session
+        if (sidechat === undefined) return
+        const result = await sidechat.sidechatStart({ sessionId: props.sessionId })
+        if (result.ok) {
+          ctx.sidebarRight.openResource(subagentChatAddress({
+            parentSessionId: props.sessionId,
+            childSessionId: result.value.sessionId,
+            mode: 'continuable',
+          }), { kind: 'subagentchat', preferNewPane: true })
+        }
+      } finally {
+        setPending(false)
+      }
+    }
+    return React.createElement('button', { type: 'button', disabled: pending, onClick }, t('sidechat'))
+  }
+  ctx.effect(() => ctx.slots.inject('conversation.session.header.utilities', () => ctx.slots.register({
+    name: 'conversation.session.header.utilities',
+    id: 'sidechat',
+    order: 5,
+    locale: NS,
+  }, SideChatUtility)), 'ui-subagent: side chat utility')
   const catalogActions = (_parentSessionId: SessionId): SubagentCatalogInjected => ({
     openChild(address: SubagentAddress) {
       ctx.uiWorkspace.openSession(address)

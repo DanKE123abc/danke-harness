@@ -47,6 +47,8 @@ import type {
   SessionFollowRequest,
   SessionForkRequest,
   SessionForkValue,
+  SessionSidechatStartRequest,
+  SessionSidechatStartValue,
   SessionListRequest,
   SessionListValue,
   SessionOpenWorkspacePathRequest,
@@ -450,6 +452,18 @@ export class SessionController extends TypertRemoteService {
       }
     }
     return this.commands.fork(request)
+  }
+
+  /**
+   * Create one side chat thread from a source Session.
+   * @param request - source Session identity.
+   * @param signal - caller cancellation.
+   * @returns the new thread Session identity.
+   */
+  @Remote('sidechatStart')
+  async sidechatStart(request: SessionSidechatStartRequest, signal: AbortSignal): Promise<SessionSidechatStartValue> {
+    signal.throwIfAborted()
+    return this.commands.sidechatStart(request)
   }
 
   /**
