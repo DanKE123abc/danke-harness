@@ -947,7 +947,7 @@ it('hides the inherited effort until a listed model is selected', async () => {
 })
 
 
-it('places account and official models before third-party models', async () => {
+it('places account models first, preserving third-party catalog order', async () => {
   const groups = ['custom', 'deepseek-official', 'deepseek-account', 'another'].map(id => ({
     id, name: id, models: [1, 2].map(index => ({ id: `${id}-${index}`, name: `${id}-${index}` })),
   }))
@@ -956,8 +956,8 @@ it('places account and official models before third-party models', async () => {
   fireEvent.click(screen.getByRole('button', { name: '请选择模型' }))
   const names = screen.getAllByRole('menuitemradio').map(row => row.textContent)
   expect(names).toEqual([
-    'deepseek-account-1', 'deepseek-account-2', 'deepseek-official-1', 'deepseek-official-2',
-    'custom-1', 'custom-2', 'another-1', 'another-2',
+    'deepseek-account-1', 'deepseek-account-2', 'custom-1', 'custom-2',
+    'deepseek-official-1', 'deepseek-official-2', 'another-1', 'another-2',
   ])
   expect(groups.map(group => group.id)).toEqual(['custom', 'deepseek-official', 'deepseek-account', 'another'])
   await expect(`${names.join('\n')}\n`).toMatchFileSnapshot('./expected/account-first.txt')

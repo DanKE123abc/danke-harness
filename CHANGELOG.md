@@ -76,6 +76,15 @@ This session removed three DeepSeek-official features in the `remove` worktree (
 #### 5. Typecheck
 - `pnpm run typecheck`: **5/5 gates pass** (host compiler, host aggregate, host typert, client compiler, client aggregate)
 
+#### 6. 内置 DeepSeek 官方渠道移出 GUI 组合
+- `packages/bundle/web-app/cordis.patch.yml`: 关闭内置 `deepseek-official`（`llm-deepseek` 行置 `disabled: true`），默认模型改为 `deepseek-account` / `deepseek-flash`
+- 设置-模型 页不再出现内置 DeepSeek 卡片；需要 DeepSeek 时走 **添加模型提供商 → 第三方模型提供商 → DeepSeek**（`llm-pi-ai` 自带档案，需自行声明模型）
+- `dsh-base` / headless / `dsh-acp-app` / SDK 组合保留内置渠道，`DEEPSEEK_API_KEY` 在这些界面照旧生效
+- `ui-model-selection`：`orderModelProviders` 不再把 `deepseek-official` 排在最前，只保留账户渠道优先
+- `apps/web/tests`：`shipped-composition` 与 `deepseek-messages-settings` 的默认模型断言改为 `deepseek-account`
+- 新增 `docs/upgrade-guide/v0.2.1-rc.2/no-builtin-deepseek-provider/`（中英双语）
+- 测试：`packages/bundle/web-app` + `ui-settings-models` 457 passed；`ui-model-selection` 83 passed
+
 ### 其他
 - 临时脚本已移入 `scripts/tmp-tools/`（worktree）后删除
 - 主树 `/d/danke-harness` 无源码改动（所有源码编辑均在 worktree 完成）
