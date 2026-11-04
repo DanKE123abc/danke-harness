@@ -24,6 +24,13 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
      */
     'sidebar.brand.mark': { kind: 'single'; scope: 'root'; owner: SidebarBrandMarkOwnerProps }
     /**
+     * Work / Code mode switch rendered between the logo row and the panel
+     * list in the expanded sidebar. Declared by this package's `sidebar`
+     * entry; a feature plugin registers the sliding toggle occupant. Empty
+     * by default, so the shell reserves no space without an occupant.
+     */
+    'sidebar.mode.switch': { kind: 'single'; scope: 'root'; owner: SidebarModeSwitchOwnerProps }
+    /**
      * Brand name rendered beside the expanded mark. Declared by this
      * package's `sidebar` entry; the shell supplies a generic text fallback.
      */
@@ -64,6 +71,15 @@ export interface SidebarBrandMarkOwnerProps {
 export interface SidebarBrandNameOwnerProps {
   /** Marker field: the occupant owns its own content and width. */
   children?: never
+}
+
+/**
+ * Owner share of the Work / Code mode switch: the sidebar passes only its
+ * display state. The occupant owns the selected mode and the panel switch.
+ */
+export interface SidebarModeSwitchOwnerProps {
+  /** Whether the sidebar renders wide content (false = 56px rail). */
+  wide: boolean
 }
 
 /** Icon presentation supplied by the global panel row. */
@@ -140,6 +156,7 @@ export type SidebarRootComponentProps =
     | 'sidebar.brand.mark'
     | 'sidebar.brand.name'
     | 'sidebar.toggle.badge'
+    | 'sidebar.mode.switch'
     | 'sidebar.panellist'
     | 'sidebar.workspaces'
     | 'sidebar.settings'

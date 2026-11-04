@@ -1,0 +1,36 @@
+{
+  "name": "dsh-workspace",
+  "displayName": "DSH Workspace",
+  "description": "DeepSeek Harness workspace and user-data provider for the embedded VS Code.",
+  "version": "0.1.0",
+  "publisher": "deepseek",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [
+    "onStartupFinished",
+    "onFileSystem:vscode-userdata"
+  ],
+  "main": "./extension.js",
+  "browser": "./extension.js",
+  "contributes": {
+    "fileSystemProviders": [
+      {
+        "scheme": "vscode-userdata",
+        "label": "DSH User Data",
+        "capabilities": {
+          "fileOpen": true,
+          "fileRead": true,
+          "fileWrite": true,
+          "fileCreate": true,
+          "fileDelete": true,
+          "fileRename": true,
+          "fileCopy": true
+        }
+      }
+    ]
+  }
+}

@@ -1,0 +1,66 @@
+/* Work / Code sliding segmented control. The track is a 2-slot pill; a
+   thumb slides under the selected option. Colors ride the shared tokens, so
+   light/dark and high-contrast themes resolve without local values. */
+
+.switch {
+  position: relative;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  height: 30px;
+  padding: 2px;
+  box-sizing: border-box;
+  border: 0.5px solid var(--dsw-alias-border-l3);
+  border-radius: var(--dsw-radius-md);
+  background: var(--dsw-alias-bg-module-platform);
+}
+
+.option {
+  position: relative;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: var(--dsw-radius-sm);
+  padding: 0 8px;
+  background: transparent;
+  color: var(--dsw-alias-label-secondary);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 26px;
+  cursor: pointer;
+}
+
+.option:focus-visible {
+  outline: var(--dsw-focus-ring-width) solid var(--dsw-focus-ring-color, var(--dsw-alias-state-business-primary));
+  outline-offset: -2px;
+}
+
+.option.active {
+  color: var(--dsw-alias-label-primary);
+}
+
+/* The thumb slides under the selected option. Left position is the pill
+   centerline (grid 1fr 1fr); Code shifts one slot right. */
+.thumb {
+  position: absolute;
+  z-index: 0;
+  top: 2px;
+  bottom: 2px;
+  left: 2px;
+  width: calc(50% - 2px);
+  border-radius: var(--dsw-radius-sm);
+  background: var(--dsw-alias-button-elevated-fill);
+  transition: transform 200ms var(--ds-ease-in-out);
+}
+
+.thumbCode {
+  transform: translateX(100%);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .thumb {
+    transition: none;
+  }
+}

@@ -203,6 +203,41 @@ exports[`sidebar shell snapshots > renders Windows caption controls in expanded 
       </span>
     </button>
     <div
+      class="modeSwitchArea"
+    >
+      <div
+        data-slot="sidebar.mode.switch"
+        style="display: contents;"
+      >
+        <div
+          aria-label="Workspace mode"
+          class="switch"
+          role="tablist"
+        >
+          <button
+            aria-selected="true"
+            class="option active"
+            role="tab"
+            type="button"
+          >
+            Work
+          </button>
+          <button
+            aria-selected="false"
+            class="option"
+            role="tab"
+            type="button"
+          >
+            Code
+          </button>
+          <span
+            aria-hidden="true"
+            class="thumb"
+          />
+        </div>
+      </div>
+    </div>
+    <div
       class="regionArea"
     >
       <div
@@ -455,6 +490,41 @@ exports[`sidebar shell snapshots > renders the expanded column (wordmark, capsul
       </span>
     </button>
     <div
+      class="modeSwitchArea"
+    >
+      <div
+        data-slot="sidebar.mode.switch"
+        style="display: contents;"
+      >
+        <div
+          aria-label="Workspace mode"
+          class="switch"
+          role="tablist"
+        >
+          <button
+            aria-selected="true"
+            class="option active"
+            role="tab"
+            type="button"
+          >
+            Work
+          </button>
+          <button
+            aria-selected="false"
+            class="option"
+            role="tab"
+            type="button"
+          >
+            Code
+          </button>
+          <span
+            aria-hidden="true"
+            class="thumb"
+          />
+        </div>
+      </div>
+    </div>
+    <div
       class="regionArea"
     >
       <div
@@ -597,6 +667,41 @@ exports[`sidebar shell snapshots > renders the expanded column in the default lo
         </span>
       </span>
     </button>
+    <div
+      class="modeSwitchArea"
+    >
+      <div
+        data-slot="sidebar.mode.switch"
+        style="display: contents;"
+      >
+        <div
+          aria-label="工作区模式"
+          class="switch"
+          role="tablist"
+        >
+          <button
+            aria-selected="true"
+            class="option active"
+            role="tab"
+            type="button"
+          >
+            Work
+          </button>
+          <button
+            aria-selected="false"
+            class="option"
+            role="tab"
+            type="button"
+          >
+            Code
+          </button>
+          <span
+            aria-hidden="true"
+            class="thumb"
+          />
+        </div>
+      </div>
+    </div>
     <div
       class="regionArea"
     >

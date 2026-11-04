@@ -29,7 +29,10 @@ dsh Web 客户端的侧边栏让用户识别当前构建、启动新会话、将
 
 侧边栏是导航外壳：用户看到品牌、启动新会话、折叠轨道并到达 Settings。功能插件填充它的席位——ui-workspace 填充 `sidebar.workspaces`，ui-settings 在 `sidebar.settings` 注册触发行与设置面板。
 
-### 品牌与 New Session
+### Work / Code 模式切换
+
+展开列在 New Session 条与全局面板列表之间渲染可选的 `sidebar.mode.switch` 席位；收起轨道时隐藏。外壳在该 `sidebar` 条目声明的 children 中声明此席位，并默认占位一个滑动 Work / Code 切换：Work 选择会话面板（`selectPanel(null)`），Code 选择已注册的 `code` 主面板，在插件注册该面板前保持空操作（布局会对缺失面板抛错）。功能包可通过 `ctx.slots.inject('sidebar.mode.switch', ...)` 向该席位注册自己的占位者；单席位始终只保留一个生效占位者。
+
 
 展开的品牌行把 `sidebar.brand.mark` 与 `sidebar.brand.name` 渲染为两个独立的 single slot；收起轨道则渲染同一个 mark slot。在 Web 和 Windows 桌面端，点击展开态的品牌会新建会话，悬停或聚焦时不显示 tooltip。没有占位者时，外壳使用鱼形标记和本地化的本地构建标签。完整构建会在标签下方显示代码徽标；该徽标使用 `DSH_CLIENT_VERSION`、可选的 7 位 `DSH_CLIENT_COMMIT_HASH` 与 `DSH_CLIENT_GIT_DIRTY=true` 组装成 `version[-commit][-dirty]`；缺少版本元数据时不显示徽标。New Session 优先使用作用域操作明确指定的 Workspace，否则使用当前 Session 所属 Workspace，再否则使用最近活跃 Workspace；一个 Workspace 都没有时则清空选择，进入空白 New Session 页面。 展开态的新建会话按钮在悬停或键盘聚焦时于右侧以灰色文字显示当前有效绑定。快捷键可见且空间较窄时，居中的图标与文字在快捷键之前渐隐；CSS 为快捷键保留宽度，无需测量按钮。纯图标控件保留使用平台键位样式的 tooltip，侧栏隐藏时常驻的 macOS 头部控件也保持一致。所有控件均提供 `aria-keyshortcuts`。
 

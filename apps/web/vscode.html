@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no" />
+    <title>Code</title>
+    <link rel="icon" href="/favicon.ico" type="image/x-icon" />
+    <link rel="stylesheet" href="/vscode/vscode/vs/workbench/workbench.web.main.internal.css" />
+  </head>
+  <body>
+    <!--
+      Bootstrap for the DSH Code panel. This page is copied verbatim to
+      dist/vscode/index.html by apps/web/vscode-assets.ts; it never enters the
+      Vite/Rollup graph. The package's own demo index.html is replaced so that
+      no github1s builtin extension (and therefore no second AI surface) loads.
+
+      Layout of the copied tree (one /vscode prefix route serves all of it):
+        /vscode/index.html            this page
+        /vscode/vscode/**            workbench core  (_VSCODE_FILE_ROOT)
+        /vscode/extensions/**        builtin extensions (../extensions)
+        /vscode/nls/**               locale bundles  (../nls/<lang>)
+        /vscode/dependencies/**      third-party runtime modules
+    -->
+    <div id="vscode-workbench-builtin-extensions" data-settings="__DSH_BUILTIN_EXTENSIONS__" hidden></div>
+    <div id="dsh-code-spinner" style="position:fixed;inset:0;display:grid;place-items:center;font:13px system-ui,sans-serif;color:#8b8b8b;background:#1f1f1f">
+      Loading Code…
+    </div>
+    <script>
+      // Absolute URL: workbench resolves module ids against this root and walks
+      // up one level for extensions/, nls/ and dependencies/.
+      globalThis._VSCODE_FILE_ROOT = new URL('/vscode/vscode/', window.location.origin).toString();
+      globalThis._VSCODE_WEB = {
+        // Append nothing to the scanned builtin extensions: github1s' own
+        // extension (which carries its repository/AI integration) is excluded.
+        builtinExtensions: [],
+        workspaceLabel: 'DSH Workspace',
+        onWorkbenchReady: function () {
+          var spinner = document.getElementById('dsh-code-spinner');
+          if (spinner) spinner.remove();
+          window.parent.postMessage({ channel: 'dsh-code', type: 'ready' }, window.location.origin);
+        }
+      };
+    </script>
+    <script src="/vscode/vscode/nls.messages.js"></script>
+    <script type="module">
+      const params = new URLSearchParams(window.location.search);
+      const sessionId = params.get('session') || '';
+      const root = globalThis._VSCODE_FILE_ROOT;
+      const { create, URI } = await import(new URL('vs/workbench/workbench.web.main.internal.js', root).href);
+      // With a session the dsh:// scheme is served by the DSH workspace provider
+      // (registered by the builtin dsh-workspace extension). Without one the
+      // workbench opens its empty temporary workspace instead of failing.
+      const workspace = sessionId
+        ? { folderUri: URI.from({ scheme: 'dsh', authority: sessionId, path: '/' }) }
+        : { workspaceUri: URI.from({ scheme: 'tmp', path: '/default.code-workspace' }) };
+      create(document.body, {
+        webviewEndpoint: new URL('vs/workbench/contrib/webview/browser/pre', root).href,
+        workspaceProvider: { trusted: true, workspace, open: () => Promise.resolve(false) },
+        configurationDefaults: {
+          'telemetry.telemetryLevel': 'off',
+          'chat.disableAIFeatures': true,
+          'workbench.startupEditor': 'none'
+        },
+        initialColorTheme: { themeType: 'dark' }
+      });
+      window.parent.postMessage({ channel: 'dsh-code', type: 'boot', sessionId }, window.location.origin);
+    </script>
+  </body>
+</html>

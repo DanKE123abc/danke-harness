@@ -327,6 +327,8 @@
 
     - id: ui-conversation
       name: '@deepseek-ai/dsh-client-ui-conversation'
+    - id: ui-vscode-panel
+      name: '@deepseek-ai/dsh-client-ui-vscode-panel'
 
     - id: ui-approval
       name: '@deepseek-ai/dsh-client-ui-approval'

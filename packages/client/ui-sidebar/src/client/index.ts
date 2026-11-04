@@ -12,12 +12,13 @@ import type {} from '@deepseek-ai/dsh-client-ui-renderer/client'
 import type {} from '@deepseek-ai/dsh-client-ui-session/client'
 import type { SidebarPanelMetadata, SidebarRootInjected } from './contract/slots.ts'
 import { HeaderLeadingControls } from './HeaderLeadingControls.tsx'
+import { ModeSwitch } from './ModeSwitch.tsx'
 import { SidebarRoot } from './SidebarRoot.tsx'
 import { en, zh, type SidebarKey } from './locales.ts'
 
 export type {
   SidebarBrandMarkOwnerProps, SidebarBrandNameOwnerProps, SidebarFooterActionOwnerProps,
-  SidebarPanelIconOwnerProps, SidebarPanelMetadata,
+  SidebarModeSwitchOwnerProps, SidebarPanelIconOwnerProps, SidebarPanelMetadata,
   SidebarRootComponentProps, SidebarRootInjected, SidebarSectionOwnerProps, SidebarSettingsOwnerProps,
 } from './contract/slots.ts'
 export type { SidebarKey } from './locales.ts'
@@ -80,6 +81,7 @@ export function apply(ctx: ClientContext): void {
       'sidebar.brand.mark': { kind: 'single', scope: 'root' },
       'sidebar.brand.name': { kind: 'single', scope: 'root' },
       'sidebar.toggle.badge': { kind: 'single', scope: 'root' },
+      'sidebar.mode.switch': { kind: 'single', scope: 'root' },
       'sidebar.panellist': { kind: 'list', scope: 'root' },
       'sidebar.workspaces': { kind: 'single', scope: 'root' },
       'sidebar.settings': { kind: 'single', scope: 'root' },
@@ -87,6 +89,22 @@ export function apply(ctx: ClientContext): void {
     },
     inject: injectProps,
   }, SidebarRoot))
+  // POC occupant of the Work / Code switch: the shell also ships the switch
+  // so the slot has a live body without a separate feature package. A real
+  // deployment can replace this registration by registering its own into
+  // `sidebar.mode.switch` (the single slot keeps one occupant in force).
+  ctx.slots.inject('sidebar.mode.switch', () => ctx.slots.register({
+    name: 'sidebar.mode.switch',
+    locale: NS,
+    inject: () => ({
+      selectPanel: (panelId) => {
+        // The layout throws on a missing main panel; keep the switch from
+        // failing the POC until a `code` panel is registered.
+        if (panelId !== null && ctx.slots.entriesOfSlot('main').every(entry => entry.options.key !== panelId)) return
+        ctx.layout.selectPanel(panelId)
+      },
+    }),
+  }, ModeSwitch))
   // macOS desktop hides the collapsed sidebar entirely, so the open/New
   // Session controls move into the frame's window-chrome seat beside the
   // traffic lights; the occupant reuses the shell's injected actions, and

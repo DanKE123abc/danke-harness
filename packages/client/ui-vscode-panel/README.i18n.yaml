@@ -1,0 +1,34 @@
+# Bilingual-pair consistency record for README.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write packages/client/ui-vscode-panel/README.md
+/:
+  en: 03f381c9363b4b92
+  zh: 2997870f7646e1ac
+/deepseek-ai-dsh-client-ui-vscode-panel:
+  en: ab00d0ada14026f0
+  zh: e21728c8a08e9a0a
+/deepseek-ai-dsh-client-ui-vscode-panel/summary:
+  en: dbac0144f9d42ba6
+  zh: c1c4bdd1b4cc8f28
+/deepseek-ai-dsh-client-ui-vscode-panel/table-of-contents:
+  en: b563e4ec4727d0de
+  zh: b563e4ec4727d0de
+/deepseek-ai-dsh-client-ui-vscode-panel/use-this-package:
+  en: 52d2ca4173497384
+  zh: ff8015e4341dcfab
+/deepseek-ai-dsh-client-ui-vscode-panel/use-this-package/what-to-expect:
+  en: 10d311a35776ca42
+  zh: aac06ea0c7e06da9
+/deepseek-ai-dsh-client-ui-vscode-panel/understand-the-implementation:
+  en: 074fed6127d4dd13
+  zh: c301f8ce4b4774a1
+/deepseek-ai-dsh-client-ui-vscode-panel/further-exploration:
+  en: 917432ac513238bd
+  zh: ef6f86174a72339e
+/deepseek-ai-dsh-client-ui-vscode-panel/model-experience:
+  en: 95ab8f9bcfd060c0
+  zh: eff0a3f6388ef07d
+/deepseek-ai-dsh-client-ui-vscode-panel/known-limitations-and-deferred-work:
+  en: 3bfd362f450dad07
+  zh: e8d4725023254ccc

@@ -9,6 +9,7 @@ import { apply, inject } from '@deepseek-ai/dsh-client-ui-sidebar/client'
 import type { SidebarRootInjected } from '@deepseek-ai/dsh-client-ui-sidebar/client'
 import type { MainPanelId } from '@deepseek-ai/dsh-client-ui-layout/client'
 import { HeaderLeadingControls } from '../src/client/HeaderLeadingControls.tsx'
+import { ModeSwitch, type ModeSwitchInjected } from '../src/client/ModeSwitch.tsx'
 import { apply as hostApply } from '../src/index.ts'
 
 const owners = new Set<Fiber>()
@@ -67,6 +68,8 @@ describe('ui-sidebar apply', () => {
     expect(b.slots.entries('sidebar')).toHaveLength(1)
     expect(b.slots.spec('sidebar.brand.mark')).toEqual({ kind: 'single', scope: 'root' })
     expect(b.slots.spec('sidebar.brand.name')).toEqual({ kind: 'single', scope: 'root' })
+    expect(b.slots.spec('sidebar.mode.switch')).toEqual({ kind: 'single', scope: 'root' })
+    expect(b.slots.entries('sidebar.mode.switch').map(entry => entry.component)).toEqual([ModeSwitch])
     expect(b.slots.spec('sidebar.workspaces')).toEqual({ kind: 'single', scope: 'root' })
     expect(b.slots.spec('sidebar.settings')).toEqual({ kind: 'single', scope: 'root' })
     expect(b.slots.spec('sidebar.footer.action')).toEqual({ kind: 'list', scope: 'root' })
@@ -148,11 +151,38 @@ describe('ui-sidebar apply', () => {
     await fiber.dispose()
     expect(b.slots.entries('sidebar')).toHaveLength(0)
     expect(b.slots.entries('shell.leading')).toHaveLength(0)
+    expect(b.slots.entries('sidebar.mode.switch')).toHaveLength(0)
     expect(b.slots.spec('sidebar.brand.mark')).toBeUndefined()
     expect(b.slots.spec('sidebar.brand.name')).toBeUndefined()
     expect(b.slots.spec('sidebar.workspaces')).toBeUndefined()
     expect(b.slots.spec('sidebar.footer.action')).toBeUndefined()
     expect(b.slots.spec('sidebar.panellist')).toBeUndefined()
     expect(b.slots.entries('main')).toHaveLength(0)
+  })
+
+  it('registers the Work / Code switch and guards a missing Code panel', async () => {
+    const b = await bench()
+    await b.ctx.plugin({ inject: [...inject], apply }).await()
+    const entries = b.slots.entries('sidebar.mode.switch')
+    expect(entries).toHaveLength(1)
+    expect(entries[0]!.locale).toBe('sidebar')
+    const injected = (entries[0]!.inject as () => ModeSwitchInjected)()
+    expect(Object.keys(injected)).toEqual(['selectPanel'])
+    // Work delegates null to the layout, which selects the Conversation.
+    injected.selectPanel(null)
+    expect(b.layout.selectPanel).toHaveBeenCalledExactlyOnceWith(null)
+    // Code without a registered main panel is a no-op: the layout throws on one.
+    const codePanel = 'code' as MainPanelId
+    injected.selectPanel(codePanel)
+    expect(b.layout.selectPanel).toHaveBeenCalledTimes(1)
+    // With the Code panel registered, the switch reaches the layout.
+    const code = b.ctx.plugin({
+      inject: ['slots'],
+      apply(ctx: Context) { ctx.slots.register({ name: 'main', key: 'code' }, () => 'Code panel') },
+    })
+    await code.await()
+    injected.selectPanel(codePanel)
+    expect(b.layout.selectPanel).toHaveBeenLastCalledWith(codePanel)
+    await code.dispose()
   })
 })

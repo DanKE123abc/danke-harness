@@ -63,6 +63,7 @@ One page per subsystem of the Danke Harness: what it is, the data structures it 
 | [storage.md](storage.md) | the storage subsystem: the backend contract (`StorageBackend`), `StorageForms`, `DomainSpec`/`Domain`, `domain/changed` |
 | [workspace.md](workspace.md) | the workspace registry: `Workspace`/`WorkspaceId`, registration and resolution, the session `cwd` relationship |
 | [web-client.md](web-client.md) | the browser architecture: boot, Remote communication, paired Client models, UI adapters, Conversation assembly, Slots, and reconnect semantics |
+| [vscode-code.md](vscode-code.md) | the embedded VS Code (Code mode): plugin composition, the workbench bootstrap, and user data under `$DSH_HOME/codemode/` |
 | [client-modules.md](client-modules.md) | the web plugin table: `dsh.client` declarations, `WebBootGraph` wire composition, the bundle route and index tap |
 | [slots.md](slots.md) | typed Web UI composition: declaration ownership, cardinality and scope, framework and feature injection, props derivation, and the shipped hierarchy |
 | [client-resources.md](client-resources.md) | the client resource model: `dsh-resource://<type>/…` addresses, protocol providers and `ResourceProtocolMap`, the `useResource` global hook and its states, pins and release |

@@ -479,6 +479,13 @@
 
 .newSession:is(:hover, :focus-visible) .newSessionShortcut { opacity: 1; }
 
+/* Work / Code mode switch seat: an occupant-sized gap between New Session
+   and the panel list; the occupant owns the toggle's geometry and chrome. */
+.modeSwitchArea {
+  flex: none;
+  margin: 0 2px 8px;
+}
+
 .panelList {
   flex: none;
   display: flex;
