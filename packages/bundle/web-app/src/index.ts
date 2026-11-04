@@ -27,6 +27,7 @@ import type {} from '@deepseek-ai/cordis-plugin-loader'
 import type {} from '@deepseek-ai/dsh-shell-env'
 import { parsePublicUrl } from './public-url.ts'
 import * as VscodeStatic from './vscode-static.ts'
+import * as VscodeCodemode from './vscode-codemode.ts'
 
 /** The Web GUI this process serves, provided by the `web-runtime` row. */
 export interface WebApp {
@@ -211,6 +212,7 @@ export function apply(ctx: Context, config: Config): void {
   // wrongly, and every asset must pass browser authentication. With assets never
   // staged, each request answers 404 and the Code panel reports them unavailable.
   ctx.plugin(VscodeStatic, { distRoot: dirname(distIndex) })
+  ctx.plugin(VscodeCodemode)
   if (config.surfaceContext) {
     ctx.inject(['shellEnv'], (runtimeCtx) => {
       runtimeCtx.shellEnv.register({
