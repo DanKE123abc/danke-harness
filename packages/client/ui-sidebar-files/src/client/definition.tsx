@@ -17,6 +17,12 @@ export const FILES_KIND = 'files'
 /** This implementation's identity in the tab system, and the key its body registers under. */
 export const FILES_ID = '@deepseek-ai/dsh-client-ui-sidebar-files'
 
+/** The changes tab kind. */
+export const CHANGES_KIND = 'changes'
+
+/** This implementation's identity for the changes tab. */
+export const CHANGES_ID = '@deepseek-ai/dsh-client-ui-sidebar-files-changes'
+
 /**
  * The files type's registry definition.
  * @param t - namespace-bound translate, read fresh on every label call.
@@ -35,6 +41,21 @@ export function filesDefinition(t: TranslateNS<'sidebarFiles'>): SidebarRightTab
       title: () => t('guide.title'),
       description: () => t('guide.description'),
       icon: GuideArtworkFiles,
+    }],
+  }
+}
+
+export function changesDefinition(t: TranslateNS<'sidebarFiles'>): SidebarRightTabDefinition {
+  return {
+    id: CHANGES_ID,
+    kind: CHANGES_KIND,
+    priority: 'builtin',
+    title: () => t('changes.title'),
+    guide: [{
+      id: 'changes',
+      order: 20,
+      title: () => t('changes.title'),
+      description: () => t('changes.description'),
     }],
   }
 }

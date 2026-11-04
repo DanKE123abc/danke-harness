@@ -158,6 +158,14 @@ export interface WorkspaceFileGitChange {
   readonly staged: boolean
 }
 
+/** One Git diff. */
+export interface WorkspaceFileGitDiff {
+  readonly path: string
+  readonly staged: boolean
+  readonly text: string
+  readonly truncated: boolean
+}
+
 /** The Git status of one workspace. */
 export interface WorkspaceFileGitStatus {
   readonly changes: readonly WorkspaceFileGitChange[]

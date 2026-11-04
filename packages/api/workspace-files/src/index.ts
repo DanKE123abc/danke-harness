@@ -49,6 +49,7 @@ import type {
   WorkspaceFileSearchOptions,
   WorkspaceFileGitStatus,
   WorkspaceFileGitChange,
+  WorkspaceFileGitDiff,
 } from './types.ts'
 
 export type * from './types.ts'
@@ -556,6 +557,37 @@ export class WorkspaceFiles extends TypertRemoteService {
       changes = []
     }
     return { changes, branch }
+  }
+
+  /**
+   * Read one Git diff.
+   * @param workspaceFileScope - header-derived workspace root for the Session identity on the wire.
+   * @param path - repository-relative path to diff.
+   * @param staged - whether to diff the staged version.
+   * @param signal - caller cancellation.
+   * @returns the unified diff text.
+   */
+  @Remote
+  async gitDiff(workspaceFileScope: WorkspaceFileScope, path: string, staged: boolean, signal: AbortSignal): Promise<WorkspaceFileGitDiff> {
+    const { workspaceRoot } = workspaceFileScope
+    const exec = promisify(execFile)
+    const args = staged
+      ? ['diff', '--cached', '--', path]
+      : ['diff', '--', path]
+    let text = ''
+    let truncated = false
+    try {
+      const result = await exec('git', args, { cwd: workspaceRoot, signal, maxBuffer: 1024 * 1024 })
+      text = result.stdout
+    } catch (error) {
+      const stdout = typeof error === 'object' && error !== null && 'stdout' in error ? String((error as { stdout?: unknown }).stdout ?? '') : ''
+      text = stdout
+    }
+    if (text.length > 200000) {
+      text = text.slice(0, 200000)
+      truncated = true
+    }
+    return { path, staged, text, truncated }
   }
 
   /**

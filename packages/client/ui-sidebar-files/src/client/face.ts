@@ -155,6 +155,12 @@ export interface FilesInjected {
     tabId: TabId,
     signal: AbortSignal,
   ) => Promise<{ changes: readonly { path: string; status: string; staged: boolean }[]; branch: string | null }>
+  readonly gitDiff?: (
+    tabId: TabId,
+    path: string,
+    staged: boolean,
+    signal: AbortSignal,
+  ) => Promise<{ path: string; staged: boolean; text: string; truncated: boolean }>
 }
 
 /**
@@ -258,6 +264,12 @@ export function filesFace(
         const result = await remote.workspaceFiles.gitStatus(sessionId, signal)
         if (!result.ok) return { changes: [], branch: null }
         return { changes: result.value.changes, branch: result.value.branch }
+      },
+      gitDiff: async (_tabId, path, staged, signal) => {
+        if (remote === undefined) return { path, staged, text: '', truncated: false }
+        const result = await remote.workspaceFiles.gitDiff(sessionId, path, staged, signal)
+        if (!result.ok) return { path, staged, text: '', truncated: false }
+        return { path: result.value.path, staged: result.value.staged, text: result.value.text, truncated: result.value.truncated }
       },
     }
   }

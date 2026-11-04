@@ -16,9 +16,10 @@ import type {} from '@deepseek-ai/dsh-api-remotes/client'
 import type {} from '@deepseek-ai/dsh-client-ui-renderer/client'
 import type {} from '@deepseek-ai/dsh-client-ui-session/client'
 import type {} from '@deepseek-ai/dsh-client-ui-sidebar-right/client'
-import { FILES_ID, filesDefinition } from './definition.tsx'
+import { FILES_ID, filesDefinition, changesDefinition, CHANGES_ID } from './definition.tsx'
 import { createList, createWatch, filesFace } from './face.ts'
 import { FilesBody } from './FilesBody.tsx'
+import { ChangesBody } from './ChangesBody.tsx'
 import { FilesTitle } from './FilesTitle.tsx'
 import { en, zh } from './locales.ts'
 import { createFilesStore } from './store.ts'
@@ -79,6 +80,8 @@ export function apply(ctx: ClientContext): void {
     }), 'ui-sidebar-files: shortcut')
   })
   ctx.effect(() => ctx.sidebarRightTabs.register(filesDefinition(t)), 'ui-sidebar-files: files type')
+  const changesInject = filesFace(createList(ctx.remote), createWatch(ctx.remote), ctx.remote)
+  ctx.effect(() => ctx.sidebarRightTabs.register(changesDefinition(t)), 'ui-sidebar-files: changes type')
   ctx.effect(() => ctx.locale.register(NS, { zh, en }), 'ui-sidebar-files: dictionaries')
 
   const store = createFilesStore()
@@ -90,6 +93,10 @@ export function apply(ctx: ClientContext): void {
     },
     FilesBody,
   )), 'ui-sidebar-files: files tab body')
+  ctx.effect(() => ctx.slots.inject('sidebar.right.pane.tab', () => ctx.slots.register(
+    { name: 'sidebar.right.pane.tab', key: CHANGES_ID, locale: NS, store: createFilesStore(), inject: changesInject },
+    ChangesBody,
+  )), 'ui-sidebar-files: changes tab body')
   ctx.effect(() => ctx.slots.inject('sidebar.right.pane.tab.title', () => ctx.slots.register(
     { name: 'sidebar.right.pane.tab.title', key: FILES_ID },
     FilesTitle,

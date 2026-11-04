@@ -11,10 +11,11 @@ import { describe, expect, it, vi } from 'vitest'
 import { Context } from '@deepseek-ai/cordis'
 import type { ShortcutCommand } from '@deepseek-ai/dsh-client-shortcuts/client'
 import { SidebarRightTabRegistry } from '@deepseek-ai/dsh-client-ui-sidebar-right/src/client/tab-registry.ts'
-import { FILES_ID, FILES_KIND } from '../src/client/definition.tsx'
+import { FILES_ID, FILES_KIND, CHANGES_ID } from '../src/client/definition.tsx'
 import { apply, inject } from '../src/client/index.ts'
 import { apply as hostApply } from '../src/index.ts'
 import { FilesBody } from '../src/client/FilesBody.tsx'
+import { ChangesBody } from '../src/client/ChangesBody.tsx'
 import { FilesTitle } from '../src/client/FilesTitle.tsx'
 import { en, zh } from '../src/client/locales.ts'
 
@@ -99,6 +100,7 @@ describe('ui-sidebar-files apply', () => {
     // take the kind over, and the seat must still find this body.
     expect(registered.map(entry => [entry.name, entry.key, entry.locale, entry.component])).toEqual([
       ['sidebar.right.pane.tab', FILES_ID, 'sidebarFiles', FilesBody],
+      ['sidebar.right.pane.tab', CHANGES_ID, 'sidebarFiles', ChangesBody],
       ['sidebar.right.pane.tab.title', FILES_ID, undefined, FilesTitle],
     ])
     expect(registered[0]?.store).toBeDefined()
