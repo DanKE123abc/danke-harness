@@ -141,6 +141,10 @@ export interface FilesInjected {
    * @param signal - the tab record's lifetime.
    */
   readonly toggle: (tabId: TabId, parentPath: string, path: string, expanded: readonly string[], signal: AbortSignal) => void
+  /** Remove one entry inside the workspace. */
+  readonly removeEntry?: (tabId: TabId, path: string, signal: AbortSignal) => Promise<void>
+  /** Create one directory inside the workspace. */
+  readonly createDirectory?: (tabId: TabId, parentPath: string, name: string, signal: AbortSignal) => Promise<void>
 }
 
 /**
@@ -152,6 +156,7 @@ export interface FilesInjected {
 export function filesFace(
   list: ListWorkspaceDirectory,
   watch: WatchWorkspaceDirectory,
+  remote?: ClientRemote,
 ): (sessionId: SessionId, actions: BoundActions<ReturnType<typeof createFilesStore>>) => FilesInjected {
   return (
     sessionId: SessionId,
@@ -215,6 +220,17 @@ export function filesFace(
         if (collapsing) void parent?.collapse(path)
         else parent?.expand(path, next)
         actions.toggled(tabId, path)
+      },
+      removeEntry: async (_tabId, path, signal) => {
+        if (remote === undefined) return
+        const result = await remote.workspaceFiles.remove(sessionId, path, signal)
+        if (!result.ok) throw new Error(result.error?.message ?? 'remove failed')
+      },
+      createDirectory: async (_tabId, parentPath, name, signal) => {
+        if (remote === undefined) return
+        const target = `${parentPath.replace(/[/\\]+$/, '')}/${name}`
+        const result = await remote.workspaceFiles.mkdir(sessionId, target, signal)
+        if (!result.ok) throw new Error(result.error?.message ?? 'mkdir failed')
       },
     }
   }

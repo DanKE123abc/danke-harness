@@ -37,6 +37,8 @@ export const zh = {
   'error.outsideWorkspace': '这个目录在工作区之外，侧栏不会读取它。',
   'error.notDirectory': '这不是一个目录。',
   'error.unavailable': '读取失败：{message}',
+  delete: '删除',
+  'newFolder': '新建文件夹',
 } satisfies Record<string, string>
 
 /** Files dictionary key union. */
@@ -61,4 +63,6 @@ export const en = {
   'error.outsideWorkspace': 'That directory is outside the workspace, so the sidebar will not read it.',
   'error.notDirectory': 'That is not a directory.',
   'error.unavailable': 'Read failed: {message}',
+  delete: 'Delete',
+  'newFolder': 'New folder',
 } satisfies Record<SidebarFilesKey, string>

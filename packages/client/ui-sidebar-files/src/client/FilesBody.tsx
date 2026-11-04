@@ -74,6 +74,7 @@ interface TreeContext {
   readonly state: FilesTabState
   readonly onToggle: (parent: string, path: string) => void
   readonly onOpen: (path: string) => void
+  readonly onDelete: (path: string) => void
   readonly t: TranslateNS<'sidebarFiles'>
 }
 
@@ -98,6 +99,9 @@ function Entry({ parent, entry, tree }: { parent: string; entry: WorkspaceDirect
         <button type="button" className={css.row} onClick={() => { tree.onOpen(path) }}>
           <FileTypeIcon kind={classifyFileType(entry.name)} size={16} className={css.fileIcon} />
           <span className={css.name}>{entry.name}</span>
+        </button>
+        <button type="button" className={css.tool} aria-label={tree.t('delete')} data-files-delete onClick={() => { tree.onDelete(path) }}>
+          ×
         </button>
       </li>
     )
@@ -139,7 +143,7 @@ function Level({ path, tree }: { path: string; tree: TreeContext }): ReactNode {
 /** The file tree's body: the workspace root and whatever the reader has opened under it. */
 export function FilesBody({
   useTabInfo, sessionId, useSessions, useStore, actions,
-  start, refresh, setAutoRefresh, toggle, t, renderSlot,
+  start, refresh, setAutoRefresh, toggle, removeEntry, createDirectory, t, renderSlot,
 }: FilesBodyProps): ReactNode {
   const { tab } = useTabInfo()
   useEffect(() => tab.actions.bindCommands({ refresh: () => { refresh(tab.id) } }), [tab.actions, tab.id, refresh])
@@ -185,7 +189,17 @@ export function FilesBody({
     onToggle: (parent, path) => { toggle(tab.id, parent, path, state.expanded, signal) },
     // Every row is under the tree's root, so its address is session-relative.
     onOpen: (path) => { tabActions.openResource(fileAddressFor(sessionId, state.root, path)) },
+    onDelete: (path) => {
+      if (removeEntry === undefined) return
+      void removeEntry(tab.id, path, signal).then(() => { refresh(tab.id) }).catch(() => {})
+    },
     t,
+  }
+  const onCreateFolder = (): void => {
+    if (createDirectory === undefined || state === undefined) return
+    const name = typeof window !== 'undefined' ? window.prompt(t('newFolder')) : null
+    if (name === null || name.trim() === '') return
+    void createDirectory(tab.id, state.root, name.trim(), signal).then(() => { refresh(tab.id) }).catch(() => {})
   }
   const reload = (): void => {
     refresh(tab.id)
@@ -214,6 +228,9 @@ export function FilesBody({
             <IconRefreshOutlineRegular />
           </button>
         </Tooltip>
+        <button type="button" className={css.tool} aria-label={t('newFolder')} data-files-new-folder onClick={onCreateFolder}>
+          +
+        </button>
         {renderSlot('sidebar.right.tab.files.actions', {
           absolutePath: state.root,
         })}
