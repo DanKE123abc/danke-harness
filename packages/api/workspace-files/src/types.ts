@@ -141,6 +141,26 @@ export type WorkspaceFileChange =
     readonly absent: true
   }
 
+/** One file or directory search hit, relative to the search root. */
+export interface WorkspaceFileSearchResult {
+  /** Matching entry paths, '/'-separated and relative to the search root. */
+  readonly matches: readonly string[]
+  /** The subset of `matches` that are directories. */
+  readonly dirs: readonly string[]
+  /** Whether the walk stopped before exhausting the tree. */
+  readonly truncated: boolean
+}
+
+/** Options for one workspace file search. */
+export interface WorkspaceFileSearchOptions {
+  /** Case-sensitive? false by default. */
+  readonly caseSensitive?: boolean
+  /** Maximum number of matches to return. */
+  readonly maxMatches?: number
+  /** Maximum number of entries to visit. */
+  readonly maxVisited?: number
+}
+
 /** Options for one guarded full-file write. */
 export interface WorkspaceFileWriteOptions {
   /** Opaque version observed by the caller; a mismatch refuses the write. */

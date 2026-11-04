@@ -20,7 +20,7 @@
  */
 
 import { posix, win32 } from 'node:path'
-import { mkdir as makeDir, rename as renamePath, rm } from 'node:fs/promises'
+import { mkdir as makeDir, readdir, rename as renamePath, rm } from 'node:fs/promises'
 import type { Context } from '@deepseek-ai/cordis'
 import z from '@deepseek-ai/schemastery'
 import type {} from '@deepseek-ai/dsh-fs'
@@ -43,6 +43,8 @@ import type {
   WorkspaceFileText,
   WorkspaceFileWatchFrame,
   WorkspaceFileWriteOptions,
+  WorkspaceFileSearchResult,
+  WorkspaceFileSearchOptions,
 } from './types.ts'
 
 export type * from './types.ts'
@@ -420,6 +422,96 @@ export class WorkspaceFiles extends TypertRemoteService {
     const info = await this.ctx.fs.stat(destination, signal)
     if (info === undefined) throw new RemoteError('workspace-file/not-found', `no entry at "${newPath}"`, { path: newPath })
     return this.statOf(destination, info)
+  }
+
+  /**
+   * Search file and directory names inside the Session's workspace.
+   * @param workspaceFileScope - header-derived workspace root for the Session identity on the wire.
+   * @param query - name or path fragment to match.
+   * @param options - budgets and case sensitivity.
+   * @param signal - caller cancellation.
+   * @returns matching paths, their directory subset, and a truncation flag.
+   */
+  @Remote
+  async search(
+    workspaceFileScope: WorkspaceFileScope,
+    query: string,
+    options: WorkspaceFileSearchOptions,
+    signal: AbortSignal,
+  ): Promise<WorkspaceFileSearchResult> {
+    if (query.trim() === '') return { matches: [], dirs: [], truncated: false }
+    const { workspaceRoot } = workspaceFileScope
+    const rootTarget = await this.ctx.fs.resolve(workspaceRoot, { signal })
+    const rootPath = this.ctx.fs.processPath(rootTarget)
+    const maxMatches = options.maxMatches ?? 200
+    const maxVisited = options.maxVisited ?? 100000
+    const caseSensitive = options.caseSensitive === true
+    const needle = caseSensitive ? query : query.toLowerCase()
+    const directPath = query.startsWith('/') || query.startsWith('~') || query.startsWith('./') || query.startsWith('../') || query.includes('\\')
+    const matches: string[] = []
+    const dirs: string[] = []
+    let visited = 0
+    let truncated = false
+    const skip = new Set(['.git', 'node_modules', '.cache', 'dist', 'build', 'target'])
+
+    const push = (relativePath: string, isDir: boolean): void => {
+      if (matches.length >= maxMatches) {
+        truncated = true
+        return
+      }
+      matches.push(relativePath)
+      if (isDir) dirs.push(relativePath)
+    }
+
+    const walk = async (absoluteDir: string, relativeDir: string): Promise<void> => {
+      if (signal.aborted || truncated) return
+      let entries
+      try {
+        entries = await readdir(absoluteDir, { withFileTypes: true })
+      } catch {
+        return
+      }
+      for (const entry of entries) {
+        if (signal.aborted || truncated) return
+        if (visited >= maxVisited) {
+          truncated = true
+          return
+        }
+        visited += 1
+        if (skip.has(entry.name.toLowerCase())) continue
+        const childRelative = relativeDir === '' ? entry.name : `${relativeDir}/${entry.name}`
+        const isDir = entry.isDirectory() && !entry.isSymbolicLink()
+        let isMatch = false
+        if (directPath || query.includes('/') || query.includes('\\')) {
+          const haystack = caseSensitive ? childRelative : childRelative.toLowerCase()
+          isMatch = haystack.includes(needle.replace(/\\/g, '/'))
+        } else {
+          const haystack = caseSensitive ? entry.name : entry.name.toLowerCase()
+          isMatch = haystack.includes(needle)
+        }
+        if (isMatch) push(childRelative, isDir)
+        if (isDir) await walk(`${absoluteDir}/${entry.name}`, childRelative)
+      }
+    }
+
+    if (directPath) {
+      try {
+        const target = await this.ctx.fs.resolve(query, { cwd: workspaceRoot, signal })
+        if (this.ctx.fs.contains(rootTarget, target)) {
+          const info = await this.ctx.fs.stat(target, signal)
+          if (info !== undefined) {
+            const relativePath = this.ctx.fs.processPath(target).slice(rootPath.length).replace(/^[\\/]+/, '').replace(/\\/g, '/')
+            if (relativePath !== '') push(relativePath, info.type === 'directory')
+            return { matches, dirs, truncated }
+          }
+        }
+      } catch {
+        // Fall through to the tree walk for a missing direct target.
+      }
+    }
+
+    await walk(rootPath, '')
+    return { matches, dirs, truncated }
   }
 
   /**
