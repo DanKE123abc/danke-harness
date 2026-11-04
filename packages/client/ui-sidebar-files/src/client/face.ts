@@ -146,6 +146,11 @@ export interface FilesInjected {
   /** Create one directory inside the workspace. */
   readonly createDirectory?: (tabId: TabId, parentPath: string, name: string, signal: AbortSignal) => Promise<void>
   readonly renameEntry?: (tabId: TabId, oldPath: string, newPath: string, signal: AbortSignal) => Promise<void>
+  readonly searchFiles?: (
+    tabId: TabId,
+    query: string,
+    signal: AbortSignal,
+  ) => Promise<{ matches: readonly string[]; dirs: readonly string[]; truncated: boolean }>
 }
 
 /**
@@ -237,6 +242,12 @@ export function filesFace(
         if (remote === undefined) return
         const result = await remote.workspaceFiles.rename(sessionId, oldPath, newPath, signal)
         if (!result.ok) throw new Error(result.error?.message ?? 'rename failed')
+      },
+      searchFiles: async (_tabId, query, signal) => {
+        if (remote === undefined) return { matches: [], dirs: [], truncated: false }
+        const result = await remote.workspaceFiles.search(sessionId, query, { maxMatches: 50, maxVisited: 10000 }, signal)
+        if (!result.ok) return { matches: [], dirs: [], truncated: false }
+        return { matches: result.value.matches, dirs: result.value.dirs, truncated: result.value.truncated }
       },
     }
   }

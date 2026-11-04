@@ -8,7 +8,7 @@
  * anything else is shown but refuses to open. The header uses the shared
  * PathLabel for the root, followed by reload and workspace directory actions.
  */
-import { useEffect, useLayoutEffect, useRef } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
 import clsx from 'clsx'
 import type { RemoteFailure } from '@deepseek-ai/dsh-api-remotes/client'
@@ -147,13 +147,35 @@ function Level({ path, tree }: { path: string; tree: TreeContext }): ReactNode {
 /** The file tree's body: the workspace root and whatever the reader has opened under it. */
 export function FilesBody({
   useTabInfo, sessionId, useSessions, useStore, actions,
-  start, refresh, setAutoRefresh, toggle, removeEntry, createDirectory, renameEntry, t, renderSlot,
+  start, refresh, setAutoRefresh, toggle, removeEntry, createDirectory, renameEntry, searchFiles, t, renderSlot,
 }: FilesBodyProps): ReactNode {
   const { tab } = useTabInfo()
   useEffect(() => tab.actions.bindCommands({ refresh: () => { refresh(tab.id) } }), [tab.actions, tab.id, refresh])
   const { signal, actions: tabActions } = tab
   const cwd = useSessions(sessions => sessions.byId[sessionId]?.cwd)
   const state = useStore(store => store.byTab[tab.id])
+  const [query, setQuery] = useState('')
+  const [results, setResults] = useState<{ matches: readonly string[]; dirs: readonly string[]; truncated: boolean } | null>(null)
+  useEffect(() => {
+    if (query.trim() === '') {
+      setResults(null)
+      return
+    }
+    const controller = new AbortController()
+    let cancelled = false
+    void (searchFiles === undefined
+      ? Promise.resolve({ matches: [], dirs: [], truncated: false })
+      : searchFiles(tab.id, query, controller.signal)
+    ).then((result) => {
+      if (!cancelled) setResults(result)
+    }).catch(() => {
+      if (!cancelled) setResults({ matches: [], dirs: [], truncated: false })
+    })
+    return () => {
+      cancelled = true
+      controller.abort()
+    }
+  }, [query, searchFiles, tab.id])
   const bodyRef = useRef<HTMLDivElement>(null)
   const scrollTopRef = useRef(0)
   // Come back where the reader was: loaded levels outlive the body in the
@@ -219,6 +241,13 @@ export function FilesBody({
     <div className={css.root} data-files-state="tree" data-files-root={state.root}>
       <div className={css.header}>
         <PathLabel path={state.root} className={css.path} data-files-path />
+        <input
+          type="search"
+          aria-label={t('search')}
+          value={query}
+          onChange={event => setQuery(event.target.value)}
+          className={css.search}
+        />
         <span hidden>
           <button type="button" className={css.tool} aria-label={t('autoRefresh')}
             aria-pressed={state.autoRefresh} data-files-auto-refresh
@@ -252,7 +281,22 @@ export function FilesBody({
         data-files-body
         onScroll={(event) => { scrollTopRef.current = event.currentTarget.scrollTop }}
       >
-        <ul className={css.level}><Level path={state.root} tree={tree} /></ul>
+        {results === null ? (
+          <ul className={css.level}><Level path={state.root} tree={tree} /></ul>
+        ) : (
+          <ul className={css.level}>
+            {results.matches.map(path => (
+              <li key={path} className={css.item} data-files-search-result={path}>
+                <button type="button" className={css.row} onClick={() => {
+                  if (!results.dirs.includes(path)) tree.onOpen(path)
+                }}>
+                  <span className={css.name}>{path}</span>
+                </button>
+              </li>
+            ))}
+            {results.truncated && <li className={css.note} data-files-row="truncated">{t('truncated')}</li>}
+          </ul>
+        )}
       </div>
     </div>
   )
