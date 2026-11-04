@@ -129,6 +129,8 @@
     # agent-write change feed inside the session workspace root.
     - id: terminal-controller
       name: '@deepseek-ai/dsh-api-terminal-controller'
+      config:
+        gitBash: !!js process.platform === 'win32'
     - id: workspace-files
       name: '@deepseek-ai/dsh-api-workspace-files'
 

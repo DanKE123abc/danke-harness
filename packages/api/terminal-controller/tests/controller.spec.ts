@@ -16,9 +16,12 @@ import type { RemoteInvocation, PeerId } from '@deepseek-ai/dsh-typert-protocol'
 import { resolveShell } from '../src/shells.ts'
 import type { TerminalInput, WebTerminalId } from '../src/types.ts'
 
+const mockResolveGitBash = vi.hoisted(() => vi.fn())
+vi.mock('@deepseek-ai/dsh-gitbash-sandbox/bash-path', () => ({ resolveGitBash: mockResolveGitBash }))
+
 const roots: Context[] = []
 afterEach(async () => { await Promise.all(roots.splice(0).map(ctx => ctx.fiber.dispose())) })
-const config: Config = { shellCandidates: ['zsh', 'bash', 'sh'], shell: { path: '/bin/bash', name: 'bash', args: ['--noprofile', '--norc', '-i'] }, maxTerminals: 2, maxCols: 200, maxRows: 100, scrollback: 100, maxBufferedBytes: 100_000, maxInputBytes: 1000, disposeGraceMs: 100, unattendedTimeoutMs: 7_200_000, activityPollIntervalMs: 30_000, cleanupRetryMs: 60_000 }
+const config: Config = { shellCandidates: ['zsh', 'bash', 'sh'], shell: { path: '/bin/bash', name: 'bash', args: ['--noprofile', '--norc', '-i'] }, gitBash: false, gitBashPath: '', maxTerminals: 2, maxCols: 200, maxRows: 100, scrollback: 100, maxBufferedBytes: 100_000, maxInputBytes: 1000, disposeGraceMs: 100, unattendedTimeoutMs: 7_200_000, activityPollIntervalMs: 30_000, cleanupRetryMs: 60_000 }
 const id = 'test-terminal' as WebTerminalId
 const request = { id, cols: 80, rows: 24 }
 const signal = (): AbortSignal => new AbortController().signal
@@ -81,6 +84,38 @@ describe('TerminalController', () => {
     expect(await controller.create(agent, request, signal())).toBe(created)
     expect(subprocess.terminalEnvironment).toHaveBeenCalledOnce()
     expect(subprocess.spawnTerminal).toHaveBeenCalledOnce()
+  })
+
+  it('defaults the sidebar shell to the resolved Git Bash when gitBash is set', async () => {
+    mockResolveGitBash.mockReturnValue({ path: 'C:\\Program Files\\Git\\bin\\bash.exe' })
+    const { controller, agent, subprocess } = fixture({ shell: undefined, gitBash: true })
+    expect((await controller.shells(agent, signal()))[0]).toMatchObject({ path: 'C:\\Program Files\\Git\\bin\\bash.exe', name: 'Git Bash', args: ['-i'] })
+    const created = await controller.create(agent, request, signal())
+    expect(created.shell.path).toBe('C:\\Program Files\\Git\\bin\\bash.exe')
+    expect(subprocess.spawnTerminal).toHaveBeenCalledWith(expect.objectContaining({ argv: ['C:\\Program Files\\Git\\bin\\bash.exe', '-i'] }))
+  })
+
+  it('honours an explicit gitBashPath over auto-discovery', async () => {
+    mockResolveGitBash.mockReturnValue({ path: 'C:\\custom\\bash.exe' })
+    const { controller, agent } = fixture({ shell: undefined, gitBash: true, gitBashPath: 'C:\\custom\\bash.exe' })
+    await controller.shells(agent, signal())
+    expect(mockResolveGitBash).toHaveBeenCalledWith({ configured: 'C:\\custom\\bash.exe' })
+  })
+
+  it('falls back to the environment default when gitBash is set but no Git Bash resolves', async () => {
+    mockResolveGitBash.mockReturnValue({ reason: 'no Git for Windows bash found' })
+    const { controller, agent, subprocess } = fixture({ shell: undefined, gitBash: true })
+    subprocess.terminalEnvironment.mockResolvedValue({ platform: 'posix', defaultShell: '/usr/local/bin/zsh' })
+    expect((await controller.shells(agent, signal()))[0]).toMatchObject({ path: '/usr/local/bin/zsh' })
+    const created = await controller.create(agent, request, signal())
+    expect(created.shell.path).toBe('/usr/local/bin/zsh')
+  })
+
+  it('prefers the configured shell profile over the Git Bash default', async () => {
+    mockResolveGitBash.mockReturnValue({ path: 'C:\\Program Files\\Git\\bin\\bash.exe' })
+    const { controller, agent } = fixture({ gitBash: true })
+    const shells = await controller.shells(agent, signal())
+    expect(shells[0]).toMatchObject({ path: '/bin/bash', name: 'bash' })
   })
 
   it('restores a running terminal after its default executable becomes unavailable', async () => {

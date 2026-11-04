@@ -135,9 +135,11 @@ export class SandboxBashExecutor extends LocalBashExecutor {
   /**
    * Decorate the handle's foreground projection in place, memoized once. The
    * handle keeps its identity (never wrapped in a second object) because the
-   * per-process facts and `onProcessDone` key on the exact instance.
+   * per-process facts and `onProcessDone` key on the exact instance. Protected
+   * so a Git Bash subclass that reuses the same projection (but supplies its
+   * own argv) can stamp its own sandbox facts.
    */
-  private static decorateResult(
+  protected static decorateResult(
     ex: ShellExecution,
     map: (result: ShellRunResult) => ShellRunResult,
     mapError?: (error: unknown) => never,

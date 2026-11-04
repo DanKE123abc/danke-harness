@@ -1132,6 +1132,11 @@ describe('renderPwshResult sandbox markers', () => {
   it('a confined run without a denial adds no sandbox marker', () => {
     expect(renderPwshResult({ ...base, sandbox: { mode: 'read-only', denied: false } })).toBe('out\n')
   })
+
+  it('an unconfined Git Bash compat run is labelled without a denial marker', () => {
+    expect(renderPwshResult({ ...base, sandbox: { mode: 'workspace-write', denied: false, unconfined: true } }))
+      .toBe('out\n[compat: bash runs outside the DSH file sandbox (session mode workspace-write)]')
+  })
 })
 
 describe('renderPwshJobRead', () => {
@@ -1176,6 +1181,11 @@ describe('renderPwshJobRead', () => {
       .toBe('x\n[sandbox: file access denied under read-only mode]\n'
         + '[sandbox: escalation available — retry this exact command once with sandbox_permissions '
         + '(the narrowest wider mode that suffices) + justification; the approval prompt asks the user]')
+  })
+
+  it('appends the Git Bash compat note for an unconfined run', () => {
+    expect(renderPwshJobRead('x', false, [], { mode: 'workspace-write', denied: false, unconfined: true }))
+      .toBe('x\n[compat: bash runs outside the DSH file sandbox (session mode workspace-write)]')
   })
 })
 

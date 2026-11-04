@@ -41,6 +41,13 @@ export interface ShellSandboxInfo {
   enforcement?: SandboxEnforcement
   /** Whether the sandbox runner failed before the command could run. */
   runnerFailed?: boolean
+  /**
+   * True when the executor ran the command OUTSIDE the file sandbox by
+   * explicit policy (the Git Bash compat path): the command had full file
+   * access while the session mode was `workspace-write`. The tool renders a
+   * `[compat: ...]` marker so the model knows the sandbox was not applied.
+   */
+  unconfined?: boolean
 }
 
 /**

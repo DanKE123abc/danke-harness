@@ -42,7 +42,7 @@ class RecordingSandbox extends SandboxProvider {
 
 function config(): ResolvedConfig {
   return {
-    backendType: 'shell', shellDialect: 'bash', shellPath: '/bin/bash', shellArgs: [], rows: 24, cols: 80,
+    backendType: 'shell', shellDialect: 'bash', shellPath: '/bin/bash', shellArgs: [], gitBash: false, rows: 24, cols: 80,
     scrollbackLines: 10, scrollbackMaxBytes: 100, maxReadBytes: 50,
     pollIntervalMs: 10, exactProbeAfterMs: 20, idleSilenceMs: 50, handoffGraceMs: 10, promptTailGraceMs: 0, timeoutMs: 100,
     disposeGraceMs: 10,
@@ -296,6 +296,34 @@ describe('BashTerminalBackend startup rollback', () => {
       argv: ['/bin/bash', '-i'],
       policy: { mode: 'workspace-write', sessionId: 'agent', workspaceRoot: resolve('/workspace') },
     }])
+  })
+
+  it('runs Git Bash unconfined when gitBash is active', async () => {
+    const ctx = new Context()
+    provideWorkingDirectoryFixture(ctx)
+    await ctx.plugin(RecordingSandbox)
+    await ctx.plugin(SessionProjectionRegistry)
+    await ctx.plugin(SandboxPolicyService, { mode: 'workspace-write', workspaceRoot: '/workspace' })
+    const terminal = terminalHandle()
+    let spawned: SubprocessTerminalSpawnSpec | undefined
+    const spawnTerminal = async (spec: SubprocessTerminalSpawnSpec): Promise<SubprocessTerminalHandle> => {
+      spawned = spec
+      return terminal
+    }
+    const initialized = vi.fn<() => Promise<void>>().mockResolvedValue(undefined)
+    const session = { initialize: initialized } as unknown as LocalPtySession
+    const backend = new BashTerminalBackend(
+      ctx,
+      { ...config(), gitBash: true, shellPath: 'C:\\Git\\bin\\bash.exe', shellArgs: ['-i'] },
+      spawnTerminal,
+      () => session,
+    )
+    await backend.spawn({ ...spec(agent(ctx)), cwd: '/work' })
+
+    // The Git Bash compat backend bypasses the sandbox and keeps its argv.
+    expect(spawned?.argv).toEqual(['C:\\Git\\bin\\bash.exe', '-i'])
+    expect((ctx.sandbox as RecordingSandbox).calls).toEqual([])
+    expect(initialized).toHaveBeenCalledWith(undefined)
   })
 
   it('resolves session mode and root together before wrapping the shell', async () => {

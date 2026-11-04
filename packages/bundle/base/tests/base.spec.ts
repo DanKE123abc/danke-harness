@@ -68,9 +68,10 @@ describe('dsh-base bundle', () => {
     // every host.
     for (const [id, win32, linux] of [
       ['bash-sandbox', true, false],
-      ['tool-bash', true, false],
-      ['pwsh-sandbox', false, true],
-      ['tool-pwsh', false, true],
+      ['gitbash-sandbox', false, true],
+      ['tool-bash', false, false],
+      ['pwsh-sandbox', true, true],
+      ['tool-pwsh', true, true],
     ] as const) {
       const row = rows.find(candidate => candidate.id === id)
       if (row === undefined) throw new Error(`base patch must mount ${id}`)

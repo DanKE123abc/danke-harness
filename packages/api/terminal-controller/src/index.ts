@@ -6,6 +6,7 @@ import type { SessionId } from '@deepseek-ai/dsh-session'
 import type {} from '@deepseek-ai/dsh-sandbox-policy'
 import type {} from '@deepseek-ai/dsh-working-directory'
 import { Remote, RemoteError, TypertRemoteService, type RemoteStream } from '@deepseek-ai/dsh-typert-protocol'
+import { resolveGitBash } from '@deepseek-ai/dsh-gitbash-sandbox/bash-path'
 import { discoverShells, resolveShell } from './shells.ts'
 import { BrowserTerminal } from './terminal.ts'
 import { TerminalRetention } from './retention.ts'
@@ -36,6 +37,15 @@ export interface Config {
   } | undefined
   /** Executable names or paths checked for the new-terminal shell selector. */
   readonly shellCandidates: string[]
+  /**
+   * Windows Git Bash default: when set on Windows, the new-terminal shell
+   * defaults to the resolved Git for Windows bash (the explicit
+   * `gitBashPath`, else auto-discovery) instead of the environment default.
+   * Off Windows this is inert.
+   */
+  readonly gitBash: boolean
+  /** Explicit Git Bash `bash.exe` when `gitBash` is set; empty auto-discovers. */
+  readonly gitBashPath: string
   /** Maximum retained terminals and pending allocations per Session. */
   readonly maxTerminals: number
   /** Maximum terminal width in columns. */
@@ -80,6 +90,8 @@ export class TerminalController extends TypertRemoteService {
       path: z.string().required(), name: z.string().required(), args: z.array(z.string()).default([]),
     }), z.const(undefined)]),
     shellCandidates: z.array(z.string().min(1)).default(['zsh', 'bash', 'fish', 'pwsh', 'powershell', 'cmd']),
+    gitBash: z.boolean().default(false),
+    gitBashPath: z.string().default(''),
     maxTerminals: z.number().step(1).min(1).default(8),
     maxCols: z.number().step(1).min(2).default(500),
     maxRows: z.number().step(1).min(1).default(200),
@@ -133,7 +145,7 @@ export class TerminalController extends TypertRemoteService {
   @Remote
   shells(agent: Agent, signal: AbortSignal): Promise<TerminalShell[]> {
     signal.throwIfAborted()
-    return discoverShells(this.execution(agent).subprocess, this.config.shell, this.config.shellCandidates, signal)
+    return discoverShells(this.execution(agent).subprocess, this.configuredShell(), this.config.shellCandidates, signal)
   }
 
   /**
@@ -300,6 +312,22 @@ export class TerminalController extends TypertRemoteService {
       || !Number.isSafeInteger(rows) || rows < 1 || rows > this.config.maxRows) throw new Error('Terminal dimensions exceed the configured limits')
   }
 
+  /**
+   * The preferred sidebar shell: the configured profile, else the Windows Git
+   * Bash default when `gitBash` is set (explicit `gitBashPath` or auto-
+   * discovery — the resolver's own platform gate keeps this inert off
+   * Windows), else the execution environment default.
+   * @returns the preferred shell profile, or undefined for environment default.
+   */
+  private configuredShell(): TerminalShell | undefined {
+    if (this.config.shell !== undefined) return this.config.shell
+    if (this.config.gitBash) {
+      const resolved = resolveGitBash({ configured: this.config.gitBashPath })
+      if (resolved.path !== undefined) return { path: resolved.path, name: 'Git Bash', args: ['-i'] }
+    }
+    return undefined
+  }
+
   private execution(agent: Agent): { subprocess: Context['subprocess']; sandboxPolicy: Context['sandboxPolicy']; workingDirectory: Context['workingDirectory'] } {
     // The Agent context selects execution providers but does not inject consumer services.
     const subprocess = agent.ctx.get('subprocess')
@@ -314,7 +342,7 @@ export class TerminalController extends TypertRemoteService {
     const { subprocess, workingDirectory } = this.execution(agent)
     const cwd = await workingDirectory.ensure(agent, signal)
     const shell = request.shellPath === undefined
-      ? await resolveShell(subprocess, this.config.shell, signal)
+      ? await resolveShell(subprocess, this.configuredShell(), signal)
       : (await this.shells(agent, signal)).find(candidate => candidate.path === request.shellPath)
     if (shell === undefined) throw new Error('Selected shell is not available in this execution environment')
     const handle = await subprocess.spawnTerminal({

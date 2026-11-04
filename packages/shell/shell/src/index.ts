@@ -24,7 +24,7 @@ export type {
   DshEnvironment,
   DshEnvironmentKey,
 } from './types.ts'
-export { parseExitStatus } from './render.ts'
+export { parseExitStatus, compatNote } from './render.ts'
 export type { ParsedExitStatus } from './render.ts'
 
 declare module '@deepseek-ai/cordis' {

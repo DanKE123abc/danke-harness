@@ -1,6 +1,9 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import type { Config } from '@deepseek-ai/dsh-terminal-bash/src/config.ts'
 import { resolveConfig, validateConfig } from '@deepseek-ai/dsh-terminal-bash/src/config.ts'
+
+const mockResolveGitBash = vi.hoisted(() => vi.fn())
+vi.mock('@deepseek-ai/dsh-gitbash-sandbox/bash-path', () => ({ resolveGitBash: mockResolveGitBash }))
 
 function config(overrides: Partial<Config> = {}): Config {
   return {
@@ -43,6 +46,43 @@ describe('terminal-bash config', () => {
     expect(() => { validateConfig(config({ promptTailGraceMs: 0, pollIntervalMs: 10 })) }).not.toThrow()
   })
 
+})
+
+describe('terminal-bash Git Bash resolution', () => {
+  it('activates Git Bash, replacing the executable and args with the Git Bash profile', () => {
+    mockResolveGitBash.mockReturnValue({ path: 'C:\\Program Files\\Git\\bin\\bash.exe' })
+    const resolved = resolveConfig({ backendType: 'shell', gitBash: true, rows: 24, cols: 80 })
+    expect(resolved.gitBash).toBe(true)
+    expect(resolved.shellPath).toBe('C:\\Program Files\\Git\\bin\\bash.exe')
+    expect(resolved.shellArgs).toEqual(['--noprofile', '--norc', '-i'])
+    expect(mockResolveGitBash).toHaveBeenCalledWith({ configured: '' })
+  })
+
+  it('uses an explicit gitBashPath over auto-discovery', () => {
+    mockResolveGitBash.mockReturnValue({ path: 'C:\\custom\\bash.exe' })
+    const resolved = resolveConfig({ backendType: 'shell', gitBash: true, gitBashPath: 'C:\\custom\\bash.exe', rows: 24, cols: 80 })
+    expect(resolved.shellPath).toBe('C:\\custom\\bash.exe')
+    expect(mockResolveGitBash).toHaveBeenCalledWith({ configured: 'C:\\custom\\bash.exe' })
+  })
+
+  it('fails loud when no Git Bash resolves', () => {
+    mockResolveGitBash.mockReturnValue({ reason: 'no Git for Windows bash found' })
+    expect(() => resolveConfig({ backendType: 'shell', gitBash: true, rows: 24, cols: 80 }))
+      .toThrow(/no Git for Windows bash found/)
+  })
+
+  it('applies Git Bash only to the bash dialect', () => {
+    expect(() => resolveConfig({ backendType: 'shell', gitBash: true, shellDialect: 'pwsh', rows: 24, cols: 80 }))
+      .toThrow(/gitBash applies only to the bash dialect/)
+  })
+
+  it('is inert when gitBash is not set', () => {
+    mockResolveGitBash.mockClear()
+    const resolved = resolveConfig({ backendType: 'shell', rows: 24, cols: 80 })
+    expect(resolved.gitBash).toBe(false)
+    expect(resolved.shellPath).toBe('/bin/bash')
+    expect(mockResolveGitBash).not.toHaveBeenCalled()
+  })
 })
 
 describe('terminal-bash dialect resolution', () => {

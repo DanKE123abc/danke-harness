@@ -5,6 +5,7 @@
  */
 
 import type { ShellRunResult, ShellSandboxInfo, CollectedOutput } from '@deepseek-ai/dsh-shell'
+import { compatNote } from '@deepseek-ai/dsh-shell'
 import type { SandboxMode } from '@deepseek-ai/dsh-sandbox'
 import { escalationHintMarker, sandboxDenialMarker } from '@deepseek-ai/dsh-sandbox'
 
@@ -49,6 +50,8 @@ export function renderResult(
       markers.push(escalationHintMarker('command'))
     }
   }
+  // The Git Bash compat path ran outside the file sandbox; label it explicitly.
+  if (result.sandbox?.unconfined) markers.push(compatNote(result.sandbox.mode))
   // A command may trap SIGTERM and exit 0 after timeout; still report interruption.
   if (result.timedOut) markers.push(`[timed out after ${result.timeoutMs}ms]`)
   // A kill from outside the call (the human stopping its job) is not a
@@ -115,6 +118,7 @@ export function renderJobRead(
       notices.push(escalationHintMarker('command'))
     }
   }
+  if (sandbox?.unconfined) notices.push(compatNote(sandbox.mode))
   if (notices.length === 0) return delta
   return `${delta}${delta.length > 0 && !delta.endsWith('\n') ? '\n' : ''}${notices.join('\n')}`
 }

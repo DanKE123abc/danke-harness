@@ -257,7 +257,7 @@ export interface SettingsControllerInternals {
 ## `@deepseek-ai/dsh-api-terminal-controller`
 
 - `inject`: `subprocess` · `sandboxPolicy` · `workingDirectory` · `typert`
-- `source`: [`packages/api/terminal-controller/src/index.ts:27`](../packages/api/terminal-controller/src/index.ts)
+- `source`: [`packages/api/terminal-controller/src/index.ts:28`](../packages/api/terminal-controller/src/index.ts)
 
 ```ts config-catalog
 /** Deployment limits and an optional shell profile. */
@@ -273,6 +273,15 @@ export interface Config {
   } | undefined
   /** Executable names or paths checked for the new-terminal shell selector. */
   readonly shellCandidates: string[]
+  /**
+   * Windows Git Bash default: when set on Windows, the new-terminal shell
+   * defaults to the resolved Git for Windows bash (the explicit
+   * `gitBashPath`, else auto-discovery) instead of the environment default.
+   * Off Windows this is inert.
+   */
+  readonly gitBash: boolean
+  /** Explicit Git Bash `bash.exe` when `gitBash` is set; empty auto-discovers. */
+  readonly gitBashPath: string
   /** Maximum retained terminals and pending allocations per Session. */
   readonly maxTerminals: number
   /** Maximum terminal width in columns. */
@@ -1413,6 +1422,29 @@ export interface Config {
 export type Config = LocalConfig
 ```
 <!-- END GENERATED config-catalog:@deepseek-ai/dsh-fs-sandbox -->
+
+<!-- BEGIN GENERATED config-catalog:@deepseek-ai/dsh-gitbash-sandbox -->
+<a id="deepseek-aidsh-gitbash-sandbox"></a>
+
+## `@deepseek-ai/dsh-gitbash-sandbox`
+
+- `inject`: `subprocess` · `sandbox` · `sandboxPolicy`
+- `refs`: [`LocalConfig`](#deepseek-aidsh-bash-local) · `Volatile` (`@deepseek-ai/cordis`)
+- `source`: [`packages/shell/gitbash-sandbox/src/index.ts:34`](../packages/shell/gitbash-sandbox/src/index.ts)
+
+```ts config-catalog
+/** Plugin config: the local executor's knobs plus the Git Bash path and compat mode. */
+export interface GitBashConfig extends LocalConfig {
+  /** Explicit Git Bash `bash.exe`; empty means auto-discover. */
+  bashPath: Volatile<string>
+  /** `auto` (default) runs `workspace-write` unconfined; `strict` refuses it. */
+  compat: Volatile<CompatMode>
+}
+
+/** The Git Bash compat mode. `auto` is the default. */
+export type CompatMode = 'auto' | 'strict'
+```
+<!-- END GENERATED config-catalog:@deepseek-ai/dsh-gitbash-sandbox -->
 
 <!-- BEGIN GENERATED config-catalog:@deepseek-ai/dsh-goal -->
 <a id="deepseek-aidsh-goal"></a>
@@ -3056,7 +3088,7 @@ export interface Config extends SessionTitleLlmConfig {
 ```ts config-catalog
 /** Plugin config (all optional — the built-in facts resolve without defaults). */
 export interface Config {
-  /** Danke Harness home directory exposed as `DSH_HOME`; defaults to `$DSH_HOME` or `~/.danke-harness`. */
+  /** DeepSeek Harness home directory exposed as `DSH_HOME`; defaults to `$DSH_HOME` or `~/.danke-harness`. */
   dshHome?: string
 }
 ```
@@ -3093,7 +3125,7 @@ export interface Config {
   providerName?: string
   /** Whether project and user roots are included around custom roots. */
   includeDefaultRoots?: boolean
-  /** Danke Harness config root. Defaults to `$DSH_HOME` or `~/.danke-harness`. */
+  /** DeepSeek Harness config root. Defaults to `$DSH_HOME` or `~/.danke-harness`. */
   dshHome?: string
   /** Shared agent config root. Defaults to `$DSH_AGENTS_HOME` or `~/.agents`. */
   agentsHome?: string
@@ -3578,7 +3610,7 @@ export interface Config {
 ## `@deepseek-ai/dsh-terminal-bash`
 
 - `inject`: `terminals` · `sandboxPolicy` · `sessionProjections` · `subprocess` · `workingDirectory`
-- `source`: [`packages/terminal/terminal-bash/src/config.ts:10`](../packages/terminal/terminal-bash/src/config.ts)
+- `source`: [`packages/terminal/terminal-bash/src/config.ts:11`](../packages/terminal/terminal-bash/src/config.ts)
 
 ```ts config-catalog
 /** Public plugin configuration. */
@@ -3591,6 +3623,16 @@ export interface Config {
   shellPath?: string
   /** Shell arguments (default per dialect: bash `--noprofile --norc -i`, pwsh `-NoLogo -NoProfile`). */
   shellArgs?: string[]
+  /**
+   * Windows Git Bash backend: resolve Git for Windows and run it as an
+   * interactive bash shell, skipping the (incompatible) restricted-token
+   * confinement. `bash` dialect only; ignored off Windows. The explicit
+   * `gitBashPath` wins over auto-discovery, and `shellPath`/`shellArgs` are
+   * replaced by the Git Bash profile.
+   */
+  gitBash?: boolean
+  /** Explicit Git Bash `bash.exe` when `gitBash` is set; empty auto-discovers. */
+  gitBashPath?: string
   /** Terminal rows. */
   rows?: number
   /** Terminal columns. */

@@ -1,0 +1,67 @@
+# Bilingual-pair consistency record for README.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write packages/shell/gitbash-sandbox/README.md
+/:
+  en: 01c802f894f17e85
+  zh: 27f14c5610a97975
+/deepseek-ai-dsh-gitbash-sandbox:
+  en: aed7b9b8a7042772
+  zh: e88382b513a50131
+/deepseek-ai-dsh-gitbash-sandbox/summary:
+  en: c669aaecadcfb4a6
+  zh: 568ee9c83a2a368c
+/deepseek-ai-dsh-gitbash-sandbox/table-of-contents:
+  en: d152484eb41ac6b4
+  zh: 09388d293f9be9cb
+/deepseek-ai-dsh-gitbash-sandbox/use-this-package:
+  en: 67a4fc8eea7b85f6
+  zh: 42f7f7a5b8701b97
+/deepseek-ai-dsh-gitbash-sandbox/use-this-package/windows-only:
+  en: a6a2646d446f9f4e
+  zh: e68f67212844d148
+/deepseek-ai-dsh-gitbash-sandbox/use-this-package/the-compat-unconfined-choice:
+  en: 56d536b5d59a8e67
+  zh: 04f81fc94bace791
+/deepseek-ai-dsh-gitbash-sandbox/use-this-package/minimal-configuration:
+  en: 7e32fdf2571d190c
+  zh: 0e14b8c3b29a8617
+/deepseek-ai-dsh-gitbash-sandbox/use-this-package/git-bash-discovery:
+  en: 8007780081dde523
+  zh: 208ce9f9bad4536d
+/deepseek-ai-dsh-gitbash-sandbox/understand-the-implementation:
+  en: 05e2abe4a25886fd
+  zh: 6e4c8bb6ab715cbd
+/deepseek-ai-dsh-gitbash-sandbox/understand-the-implementation/design-concept:
+  en: d7be5c9287672167
+  zh: b2fba810f35cc284
+/deepseek-ai-dsh-gitbash-sandbox/understand-the-implementation/source-map:
+  en: 0d8e44834fe67f93
+  zh: e4ac8247f10594a9
+/deepseek-ai-dsh-gitbash-sandbox/understand-the-implementation/invariants:
+  en: 42a1e7aa5a2a4016
+  zh: b72f7b5acff4b704
+/deepseek-ai-dsh-gitbash-sandbox/further-exploration:
+  en: 7c14fa4c212b71e9
+  zh: 31a233c114ebb04c
+/deepseek-ai-dsh-gitbash-sandbox/model-experience:
+  en: 215e7ba838619b7b
+  zh: a311da3843709f90
+/deepseek-ai-dsh-gitbash-sandbox/model-experience/bash-tool-result-indirectly:
+  en: ba37fed04252f1eb
+  zh: 4214681810ccf85a
+/deepseek-ai-dsh-gitbash-sandbox/model-experience/bash-tool-result-indirectly/what-the-model-sees:
+  en: ee436ca3030bda73
+  zh: aea274cb83909e56
+/deepseek-ai-dsh-gitbash-sandbox/model-experience/bash-tool-result-indirectly/token-effect:
+  en: c7756168538a25c0
+  zh: 4a795fb4ff548849
+/deepseek-ai-dsh-gitbash-sandbox/model-experience/bash-tool-result-indirectly/kv-cache-effect:
+  en: f5d5f97a153f7c70
+  zh: cb78ccc84e668798
+/deepseek-ai-dsh-gitbash-sandbox/known-limitations-and-deferred-work:
+  en: 93e013522201180a
+  zh: 8ade320e395f892b
+/deepseek-ai-dsh-gitbash-sandbox/known-limitations-and-deferred-work/dev-note:
+  en: e67f633dc6fe7773
+  zh: 8ec3e73528ddb1a6

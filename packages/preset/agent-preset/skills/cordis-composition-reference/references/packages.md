@@ -394,6 +394,7 @@ Every package below exports a Cordis plugin that a bundle patch can name in a Lo
 |---|---|---|
 | `@deepseek-ai/dsh-bash-local` | yes | Local-subprocess implementation of the Danke Harness bash executor seam |
 | `@deepseek-ai/dsh-bash-sandbox` | yes | Sandbox-consuming implementation of the Danke Harness bash executor seam (confines every command via ctx.sandbox, reports denial/enforcement result facts) |
+| `@deepseek-ai/dsh-gitbash-sandbox` | yes | Git for Windows sandbox-capable executor seam: the Windows bash executor that replaces pwsh, runs the official bash tool on a resolved Git Bash, and reports the compat (unconfined) enforcement facts |
 | `@deepseek-ai/dsh-pwsh-local` | yes | Local PowerShell implementation of the Danke Harness bash executor seam |
 | `@deepseek-ai/dsh-pwsh-sandbox` | yes | Sandbox-consuming implementation of the Danke Harness PowerShell executor seam (confines every command via ctx.sandbox, reports denial/enforcement result facts) |
 | `@deepseek-ai/dsh-shell-env` | yes | Tool-independent managed DSH_* shell environment registry |

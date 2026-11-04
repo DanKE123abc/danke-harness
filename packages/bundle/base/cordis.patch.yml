@@ -252,9 +252,19 @@
       config:
         timeoutMs: 60000
 
+    # Windows bash executor: runs the official bash tool on Git for Windows.
+    # It replaces pwsh as the default Windows ctx.shell while pwsh-sandbox and
+    # tool-pwsh stay mounted (disabled) so a profile can re-enable them.
+    - id: gitbash-sandbox
+      name: '@deepseek-ai/dsh-gitbash-sandbox'
+      disabled: !!js process.platform !== 'win32'
+      config:
+        timeoutMs: 60000
+        compat: auto
+
     - id: pwsh-sandbox
       name: '@deepseek-ai/dsh-pwsh-sandbox'
-      disabled: !!js process.platform !== 'win32'
+      disabled: !!js true
 
     - id: approval
       name: '@deepseek-ai/dsh-user-approval'
@@ -280,11 +290,11 @@
 
     - id: tool-bash
       name: '@deepseek-ai/dsh-tool-bash'
-      disabled: !!js process.platform === 'win32'
+      disabled: !!js false
 
     - id: tool-pwsh
       name: '@deepseek-ai/dsh-tool-pwsh'
-      disabled: !!js process.platform !== 'win32'
+      disabled: !!js true
 
     - id: tool-jobs
       name: '@deepseek-ai/dsh-tool-jobs'

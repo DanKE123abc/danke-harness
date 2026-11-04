@@ -2,6 +2,7 @@
 
 import z from '@deepseek-ai/schemastery'
 import { resolvePwshPath } from '@deepseek-ai/dsh-pwsh-local'
+import { resolveGitBash } from '@deepseek-ai/dsh-gitbash-sandbox/bash-path'
 
 /** One supported interactive shell dialect. */
 export type ShellDialect = 'bash' | 'pwsh'
@@ -16,6 +17,16 @@ export interface Config {
   shellPath?: string
   /** Shell arguments (default per dialect: bash `--noprofile --norc -i`, pwsh `-NoLogo -NoProfile`). */
   shellArgs?: string[]
+  /**
+   * Windows Git Bash backend: resolve Git for Windows and run it as an
+   * interactive bash shell, skipping the (incompatible) restricted-token
+   * confinement. `bash` dialect only; ignored off Windows. The explicit
+   * `gitBashPath` wins over auto-discovery, and `shellPath`/`shellArgs` are
+   * replaced by the Git Bash profile.
+   */
+  gitBash?: boolean
+  /** Explicit Git Bash `bash.exe` when `gitBash` is set; empty auto-discovers. */
+  gitBashPath?: string
   /** Terminal rows. */
   rows?: number
   /** Terminal columns. */
@@ -53,10 +64,12 @@ export interface Config {
 }
 
 /** Configuration after Schemastery defaults and dialect resolution. */
-export type ResolvedConfig = Omit<Required<Config>, 'shellDialect' | 'shellPath' | 'shellArgs'> & {
+export type ResolvedConfig = Omit<Required<Config>, 'shellDialect' | 'shellPath' | 'shellArgs' | 'gitBash' | 'gitBashPath'> & {
   shellDialect: ShellDialect
   shellPath: string
   shellArgs: string[]
+  /** Whether the Git Bash (unconfined) Windows backend is active. */
+  gitBash: boolean
 }
 
 /** Bash dialect default executable. */
@@ -65,6 +78,8 @@ export const DEFAULT_BASH_SHELL = '/bin/bash'
 export const DEFAULT_BASH_ARGS = ['--noprofile', '--norc', '-i']
 /** Pwsh dialect default arguments (interactive host, profile-free). */
 export const DEFAULT_PWSH_ARGS = ['-NoLogo', '-NoProfile']
+/** Git Bash default arguments (interactive, profile-free, like bash). */
+export const GIT_BASH_ARGS = ['--noprofile', '--norc', '-i']
 
 /**
  * Resolve the effective per-dialect shell specification. Defaulting is this
@@ -72,20 +87,39 @@ export const DEFAULT_PWSH_ARGS = ['-NoLogo', '-NoProfile']
  * dialect's defaults, while a non-empty explicit value always wins.
  * (Schemastery materializes an absent optional array as `[]`, so emptiness —
  * not just `undefined` — means "dialect default".)
+ *
+ * Git Bash mode overrides the bash dialect on Windows: the executable is the
+ * resolved Git for Windows bash (the explicit `gitBashPath`, else auto-
+ * discovery), and the profile-free interactive args replace the default.
+ * Off Windows Git Bash mode fails loud instead of silently using system bash.
  * @param config - Schemastery-resolved plugin configuration.
  * @returns the fully resolved configuration.
  */
 export function resolveConfig(config: Config): ResolvedConfig {
   const shellDialect = config.shellDialect ?? 'bash'
+  const gitBash = config.gitBash === true && shellDialect === 'bash'
+  if (config.gitBash === true && !gitBash) {
+    throw new Error('terminal-bash: gitBash applies only to the bash dialect')
+  }
+  let gitBashPath: string | undefined
+  if (gitBash) {
+    const resolved = resolveGitBash({ configured: config.gitBashPath ?? '' })
+    if (resolved.path === undefined) {
+      throw new Error(`terminal-bash: ${resolved.reason ?? 'no Git for Windows bash found'}. Install Git for Windows or set the gitBashPath setting.`)
+    }
+    gitBashPath = resolved.path
+  }
   return {
     ...(config as Required<Config>),
     shellDialect,
-    shellPath: config.shellPath !== undefined && config.shellPath.length > 0
-      ? config.shellPath
-      : (shellDialect === 'pwsh' ? resolvePwshPath() : DEFAULT_BASH_SHELL),
+    shellPath: gitBashPath
+      ?? (config.shellPath !== undefined && config.shellPath.length > 0
+        ? config.shellPath
+        : (shellDialect === 'pwsh' ? resolvePwshPath() : DEFAULT_BASH_SHELL)),
     shellArgs: config.shellArgs !== undefined && config.shellArgs.length > 0
       ? config.shellArgs
-      : (shellDialect === 'pwsh' ? DEFAULT_PWSH_ARGS : DEFAULT_BASH_ARGS),
+      : (gitBash ? GIT_BASH_ARGS : (shellDialect === 'pwsh' ? DEFAULT_PWSH_ARGS : DEFAULT_BASH_ARGS)),
+    gitBash,
   }
 }
 
@@ -95,6 +129,8 @@ export const Config: z<Config> = z.object({
   shellDialect: z.union(['bash', 'pwsh'] as const).default('bash'),
   shellPath: z.string().required(false),
   shellArgs: z.array(z.string()).required(false),
+  gitBash: z.boolean().default(false),
+  gitBashPath: z.string().default(''),
   rows: z.number().default(40),
   cols: z.number().default(160),
   scrollbackLines: z.number().default(10_000),

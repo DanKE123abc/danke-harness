@@ -100,6 +100,11 @@ export const PWSH_PROMPT_SETUP =
 
 async function spawnArgv(ctx: Context, config: ResolvedConfig, policy: SandboxExecutionPolicy, signal?: AbortSignal): Promise<string[]> {
   const argv = [config.shellPath, ...config.shellArgs]
+  // Git Bash (MSYS2) cannot start inside the Windows restricted-token sandbox,
+  // so the compat backend runs unconfined — the same explicit widening the
+  // Windows bash executor reports. An interactive terminal, like the sidebar
+  // terminal, is a user-launched surface rather than a confined model command.
+  if (config.gitBash) return argv
   if (policy.mode === 'danger-full-access') return argv
   const sandbox = ctx.get('sandbox')
   if (sandbox === undefined) {

@@ -6,6 +6,16 @@
  * @module @deepseek-ai/dsh-shell/render
  */
 
+import type { SandboxMode } from '@deepseek-ai/dsh-sandbox'
+
+/** The model-facing marker a Git Bash compat (unconfined) run appends.
+ * @param mode - the session mode the run happened under.
+ * @returns the compat marker line.
+ */
+export function compatNote(mode: SandboxMode): string {
+  return `[compat: bash runs outside the DSH file sandbox (session mode ${mode})]`
+}
+
 /**
  * The exit status recovered from a rendered result, with the output body that
  * status was split off from.

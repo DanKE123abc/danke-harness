@@ -979,6 +979,16 @@ describe('renderJobRead', () => {
     expect(runner).toContain('sandbox runner itself failed under workspace-write mode')
     expect(runner).not.toContain('file access denied')
   })
+
+  it('appends the Git Bash compat note for an unconfined run', () => {
+    expect(renderJobRead('out\n', false, [], { mode: 'workspace-write', denied: false, unconfined: true }))
+      .toBe('out\n[compat: bash runs outside the DSH file sandbox (session mode workspace-write)]')
+  })
+
+  it('does not append the compat note when the run was confined', () => {
+    expect(renderJobRead('out\n', false, [], { mode: 'workspace-write', denied: false }))
+      .toBe('out\n')
+  })
 })
 
 describe('processOutcome', () => {
@@ -1136,6 +1146,14 @@ describe('renderResult', () => {
     expect(renderResult(result, ['workspace-write'])).toContain('[sandbox: escalation available')
     expect(renderResult({ ...result, sandbox: { mode: 'read-only', denied: false } }, ['workspace-write']))
       .not.toContain('[sandbox:')
+  })
+
+  it('labels an unconfined Git Bash compat run without a denial marker', () => {
+    expect(renderResult({
+      ...base,
+      exitCode: 0,
+      sandbox: { mode: 'workspace-write', denied: false, unconfined: true },
+    })).toBe('(no output)\n[compat: bash runs outside the DSH file sandbox (session mode workspace-write)]')
   })
 })
 
