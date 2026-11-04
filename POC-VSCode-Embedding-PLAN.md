@@ -73,7 +73,7 @@
 
 - [ ] `apps/web/vscode-extension/`（`dsh-workspace` 文件系统 provider 扩展）——Phase 2 主体，当前缺失（`isDirectory` 保护，不阻塞构建）
 - [x] `ui-vscode-panel` 包注册 `code` 全局面板（iframe）——Phase 1（已提交 `d838a1b`）
-- [ ] 内嵌 VS Code 用户数据重定向到 `$DSH_HOME/codemode/`（宿主 FileSystemProvider 回溯 `vscode-userdata` 协议）——Phase 2
+- [x] 内嵌 VS Code 用户数据重定向到 `$DSH_HOME/codemode/`（宿主 `/vscode-userdata` 路由 + `dsh-workspace` 扩展 provider）——Phase 2（已提交 `d3c45de`）
 - [ ] 启动 `dsh web` 实测 `/vscode` 加载（需先解除 worktree 依赖 junction 或合回主树再验证，避免污染主树）
 
 ---
