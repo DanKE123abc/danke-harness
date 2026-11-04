@@ -45,6 +45,9 @@
       "path": "../../subprocess/subprocess"
     },
     {
+      "path": "../../shell/gitbash-sandbox"
+    },
+    {
       "path": "../../typert/protocol"
     },
     {

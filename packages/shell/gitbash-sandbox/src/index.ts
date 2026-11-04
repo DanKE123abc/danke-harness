@@ -84,7 +84,7 @@ export class GitBashSandboxExecutor extends SandboxBashExecutor {
    * the shared resolver.
    * @returns the resolution (path or a reason).
    */
-  protected resolveBashPath(): GitBashResolution {
+  resolveBashPath(): GitBashResolution {
     return resolveGitBash({ configured: this.config.bashPath.get() })
   }
 

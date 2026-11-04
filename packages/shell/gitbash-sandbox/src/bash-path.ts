@@ -33,10 +33,13 @@ export interface GitBashResolution {
   readonly reason?: string
 }
 
+/** The real host I/O surface; `spawnSync` is always present on the host. */
+export type HostBashPathIO = BashPathIO & { spawnSync: NonNullable<BashPathIO['spawnSync']> }
+
 /** The real host I/O surface.
- * @returns the host-backed {@link BashPathIO}.
+ * @returns the host-backed {@link BashPathIO}, with `spawnSync` guaranteed.
  */
-export function defaultIO(): BashPathIO {
+export function defaultIO(): HostBashPathIO {
   return {
     platform: process.platform,
     env: process.env,

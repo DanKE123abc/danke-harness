@@ -41,7 +41,7 @@ function makeSpec(mode: string, overrides: Partial<ShellExecSpec> = {}): ShellEx
 }
 
 function emptyResult(): ShellRunResult {
-  return { stdout: { text: '', truncated: false }, stderr: { text: '', truncated: false }, exitCode: 0, signal: null }
+  return { stdout: { text: '', truncated: false }, stderr: { text: '', truncated: false }, exitCode: 0, signal: null, timedOut: false, aborted: false, timeoutMs: 60000 }
 }
 
 /** A subclass that records argv and short-circuits the spawn mechanics. */
@@ -54,7 +54,7 @@ class StubExecutor extends GitBashSandboxExecutor {
     if (this.bash === undefined || this.bash === '') throw new Error('gitbash-sandbox: no Git for Windows bash found')
     return this.bash
   }
-  protected override async executeArgv(spec: ShellExecSpec, argvOrPrepare: readonly string[]): Promise<ShellExecution> {
+  protected override async executeArgv(_spec: ShellExecSpec, argvOrPrepare: readonly string[]): Promise<ShellExecution> {
     this.recorded = [...argvOrPrepare]
     return { result: () => Promise.resolve(emptyResult()) } as unknown as ShellExecution
   }
@@ -65,7 +65,7 @@ class ResolveExecutor extends GitBashSandboxExecutor {
   constructor(ctx: Context, config: GitBashConfig, private readonly resolution: GitBashResolution) {
     super(ctx, config)
   }
-  protected override resolveBashPath(): GitBashResolution {
+  override resolveBashPath(): GitBashResolution {
     return this.resolution
   }
 }

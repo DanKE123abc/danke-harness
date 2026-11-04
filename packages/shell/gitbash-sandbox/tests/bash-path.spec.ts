@@ -118,7 +118,7 @@ describe('resolveGitBash', () => {
 
   it('skips probing and the registry when spawn is unavailable', () => {
     const io = makeIO({ existing: [GIT_BASH, GIT_CMD_GIT] })
-    io.spawnSync = undefined
+    delete io.spawnSync
     expect(resolveGitBash({ configured: GIT_BASH, io })).toEqual({ path: GIT_BASH })
   })
 
@@ -148,7 +148,7 @@ describe('resolveGitBash', () => {
 
   it('falls through to the registry branch which is empty when spawn is unavailable', () => {
     const io = makeIO({ existing: [] })
-    io.spawnSync = undefined
+    delete io.spawnSync
     const result = resolveGitBash({ io })
     expect(result.path).toBeUndefined()
   })
