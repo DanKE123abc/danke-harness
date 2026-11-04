@@ -166,7 +166,7 @@ describe('ui-sidebar apply', () => {
     const entries = b.slots.entries('sidebar.mode.switch')
     expect(entries).toHaveLength(1)
     expect(entries[0]!.locale).toBe('sidebar')
-    const injected = (entries[0]!.inject as () => ModeSwitchInjected)()
+    const injected = (entries[0]!.inject as () => Pick<ModeSwitchInjected, 'selectPanel'>)()
     expect(Object.keys(injected)).toEqual(['selectPanel'])
     // Work delegates null to the layout, which selects the Conversation.
     injected.selectPanel(null)
