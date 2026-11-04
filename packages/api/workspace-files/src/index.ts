@@ -383,7 +383,7 @@ export class WorkspaceFiles extends TypertRemoteService {
    * @param signal - caller cancellation.
    */
   @Remote
-  async remove(workspaceFileScope: WorkspaceFileScope, path: string, signal: AbortSignal): Promise<void> {
+  async delete(workspaceFileScope: WorkspaceFileScope, path: string, signal: AbortSignal): Promise<void> {
     const target = await this.containedTarget(workspaceFileScope, path, signal)
     const info = await this.ctx.fs.stat(target, signal)
     if (info === undefined) throw new RemoteError('workspace-file/not-found', `no entry at "${path}"`, { path })

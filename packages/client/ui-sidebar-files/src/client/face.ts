@@ -242,7 +242,7 @@ export function filesFace(
       },
       removeEntry: async (_tabId, path, signal) => {
         if (remote === undefined) return
-        const result = await remote.workspaceFiles.remove(sessionId, path, signal)
+        const result = await remote.workspaceFiles.delete(sessionId, path, signal)
         if (!result.ok) throw new Error(result.error?.message ?? 'remove failed')
       },
       createDirectory: async (_tabId, parentPath, name, signal) => {
