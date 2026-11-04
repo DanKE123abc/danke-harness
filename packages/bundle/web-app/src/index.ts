@@ -26,6 +26,7 @@ import { scrubbedParentEnv } from '@deepseek-ai/dsh-subprocess'
 import type {} from '@deepseek-ai/cordis-plugin-loader'
 import type {} from '@deepseek-ai/dsh-shell-env'
 import { parsePublicUrl } from './public-url.ts'
+import * as VscodeStatic from './vscode-static.ts'
 
 /** The Web GUI this process serves, provided by the `web-runtime` row. */
 export interface WebApp {
@@ -203,7 +204,13 @@ export function apply(ctx: Context, config: Config): void {
   /** The advertised root: the canonical `publicUrl`, or the listener's own origin. */
   const appRootUrl = (): string => publicUrl ?? ctx.webServer.getOrigin()
   ctx.provide('webApp', { getAdvertisedUrl: appRootUrl } satisfies WebApp)
-  ctx.plugin(FrontendStatic, { distIndex: internals.resolveDistIndex() })
+  const distIndex = internals.resolveDistIndex()
+  ctx.plugin(FrontendStatic, { distIndex })
+  // The Code panel's workbench payload sits beside the SPA shell at <dist>/vscode/.
+  // A named prefix route owns it: the fallback seat answers the workbench's MIME set
+  // wrongly, and every asset must pass browser authentication. With assets never
+  // staged, each request answers 404 and the Code panel reports them unavailable.
+  ctx.plugin(VscodeStatic, { distRoot: dirname(distIndex) })
   if (config.surfaceContext) {
     ctx.inject(['shellEnv'], (runtimeCtx) => {
       runtimeCtx.shellEnv.register({

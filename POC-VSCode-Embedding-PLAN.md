@@ -59,6 +59,24 @@
 
 ---
 
+## 2.5 进度（截至上一次提交后）
+
+**Phase 0 已完成大部分**（`vscode` 分支，另一 agent 已实现 + 本会话接线与补测）：
+
+- [x] `scripts/fetch-vscode-web.ts`：pin 0.30.3 + sha512 integrity 校验、gitignored `.cache/` 缓存、`--check` 只读（已实测下载并校验通过，与 npm 官方 digest 一致）
+- [x] `apps/web/vscode.html`：bootstrap（`dsh://` scheme、排除 github1s 内置 AI、postMessage 通信）
+- [x] `apps/web/vscode-assets.ts`：Vite 插件复制负载到 `dist/vscode/`（stamp 防重复、缺缓存降级 warning）
+- [x] `packages/bundle/web-app/src/vscode-static.ts`：`/vscode` 前缀路由（认证 + 路径穿越防护 + MIME 表）——本会话已接线到 `web-app` 装配并补测试（16 用例，覆盖率 100%）
+- [x] `apps/web` 构建前先 fetch 负载
+
+**仍需补**：
+
+- [ ] `apps/web/vscode-extension/`（`dsh-workspace` 文件系统 provider 扩展）——Phase 2 主体，当前缺失（`isDirectory` 保护，不阻塞构建）
+- [ ] `ui-vscode-panel` 包注册 `code` 全局面板（iframe）——Phase 1
+- [ ] 启动 `dsh web` 实测 `/vscode` 加载（需先解除 worktree 依赖 junction 或合回主树再验证，避免污染主树）
+
+---
+
 ## 3. Phase 0 — VS Code Web 资源与入口
 
 **目标**：dev server 能访问 `http://<host>/vscode`，workbench 渲染出空编辑器，无 404。
@@ -194,11 +212,11 @@ EOF
 
 ## 10. 最终验收清单（全部完成后勾选）
 
-- [ ] `/vscode` 路由渲染 VS Code workbench，无 404
+- [x] `/vscode` 路由已接线并通过单测（`serveVscodeAsset` 16 用例）；实际浏览器加载待 `dsh web` 启动验证
 - [ ] ModeSwitch Code → iframe 主面板；Work → 会话面板
 - [ ] VS Code 浏览 DSH workspace 文件树并打开文件
 - [ ] 编辑保存回 Host（可选，视写权限决策）
-- [ ] 不加载 github1s 内置 AI 扩展
+- [x] 不加载 github1s 内置 AI 扩展（`vscode.html` 置 `builtinExtensions: []`）
 - [ ] `pnpm run test:gui` + `DSH_SNAPSHOT=replay pnpm run test:web` 通过
 - [ ] Electron dev/package 通过
 - [ ] 文档（README/zh + 升级指南如有 breaking）更新
