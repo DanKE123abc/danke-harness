@@ -172,6 +172,11 @@ export interface WorkspaceFileGitStatus {
   readonly branch: string | null
 }
 
+/** Result of creating one Git commit. */
+export interface WorkspaceFileGitCommitResult {
+  readonly commitId: string | null
+}
+
 /** Options for one workspace file search. */
 export interface WorkspaceFileSearchOptions {
   /** Case-sensitive? false by default. */
@@ -225,5 +230,9 @@ declare module '@deepseek-ai/dsh-typert-protocol' {
     }
     /** An entry already exists at that path. */
     'workspace-file/already-exists': { readonly path: string }
+    /** A Git command failed. */
+    'workspace-file/git-command-failed': { readonly message: string }
+    /** The supplied path is not a valid repository-relative Git path. */
+    'workspace-file/bad-path': { readonly path: string }
   }
 }

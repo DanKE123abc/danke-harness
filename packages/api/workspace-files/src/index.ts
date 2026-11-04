@@ -50,6 +50,7 @@ import type {
   WorkspaceFileGitStatus,
   WorkspaceFileGitChange,
   WorkspaceFileGitDiff,
+  WorkspaceFileGitCommitResult,
 } from './types.ts'
 
 export type * from './types.ts'
@@ -588,6 +589,84 @@ export class WorkspaceFiles extends TypertRemoteService {
       truncated = true
     }
     return { path, staged, text, truncated }
+  }
+
+  /**
+   * Stage one or more repository-relative paths.
+   * @param workspaceFileScope - header-derived workspace root for the Session identity on the wire.
+   * @param paths - repository-relative paths to stage.
+   * @param signal - caller cancellation.
+   * @returns nothing.
+   */
+  @Remote
+  async gitStage(workspaceFileScope: WorkspaceFileScope, paths: readonly string[], signal: AbortSignal): Promise<void> {
+    const { workspaceRoot } = workspaceFileScope
+    const normalized = paths.map(path => this.normalizeGitPath(path))
+    if (normalized.length === 0) return
+    const exec = promisify(execFile)
+    try {
+      await exec('git', ['add', '--', ...normalized], { cwd: workspaceRoot, signal })
+    } catch (error) {
+      throw new RemoteError('workspace-file/git-command-failed', `git add failed: ${String(error)}`, { message: String(error) })
+    }
+  }
+
+  /**
+   * Unstage one or more repository-relative paths.
+   * @param workspaceFileScope - header-derived workspace root for the Session identity on the wire.
+   * @param paths - repository-relative paths to unstage.
+   * @param signal - caller cancellation.
+   * @returns nothing.
+   */
+  @Remote
+  async gitUnstage(workspaceFileScope: WorkspaceFileScope, paths: readonly string[], signal: AbortSignal): Promise<void> {
+    const { workspaceRoot } = workspaceFileScope
+    const normalized = paths.map(path => this.normalizeGitPath(path))
+    if (normalized.length === 0) return
+    const exec = promisify(execFile)
+    try {
+      await exec('git', ['reset', '-q', 'HEAD', '--', ...normalized], { cwd: workspaceRoot, signal })
+    } catch (error) {
+      throw new RemoteError('workspace-file/git-command-failed', `git reset failed: ${String(error)}`, { message: String(error) })
+    }
+  }
+
+  /**
+   * Create one Git commit with the supplied message.
+   * @param workspaceFileScope - header-derived workspace root for the Session identity on the wire.
+   * @param message - commit message.
+   * @param signal - caller cancellation.
+   * @returns the new commit identity when available.
+   */
+  @Remote
+  async gitCommit(workspaceFileScope: WorkspaceFileScope, message: string, signal: AbortSignal): Promise<WorkspaceFileGitCommitResult> {
+    const { workspaceRoot } = workspaceFileScope
+    const exec = promisify(execFile)
+    try {
+      await exec('git', ['commit', '-m', message], { cwd: workspaceRoot, signal })
+    } catch (error) {
+      throw new RemoteError('workspace-file/git-command-failed', `git commit failed: ${String(error)}`, { message: String(error) })
+    }
+    let commitId: string | null = null
+    try {
+      const result = await exec('git', ['rev-parse', 'HEAD'], { cwd: workspaceRoot, signal })
+      commitId = result.stdout.trim() || null
+    } catch {
+      commitId = null
+    }
+    return { commitId }
+  }
+
+  /** Validate one repository-relative path used by Git commands. */
+  private normalizeGitPath(path: string): string {
+    if (typeof path !== 'string' || path === '' || path.includes('\u0000')) {
+      throw new RemoteError('workspace-file/bad-path', 'Git path must be a non-empty repository-relative path', { path })
+    }
+    const segments = path.replace(/\\/g, '/').split('/')
+    if (segments.some(segment => segment === '' || segment === '.' || segment === '..')) {
+      throw new RemoteError('workspace-file/bad-path', 'Git path must be a non-empty repository-relative path', { path })
+    }
+    return segments.join('/')
   }
 
   /**

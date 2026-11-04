@@ -8,30 +8,32 @@ export type ChangesBodyProps = PropsRuntime<'sidebar.right.pane.tab'> & FilesInj
 
 /** A minimal Git changes view backed by workspaceFiles git status/diff. */
 export function ChangesBody({
-  useTabInfo, gitStatus, gitDiff, t,
+  useTabInfo, gitStatus, gitDiff, gitStage, gitUnstage, gitCommit, t,
 }: ChangesBodyProps): ReactNode {
   const { tab } = useTabInfo()
   const [changes, setChanges] = useState<readonly { path: string; status: string; staged: boolean }[]>([])
   const [selected, setSelected] = useState<string | null>(null)
   const [diff, setDiff] = useState('')
   const [loading, setLoading] = useState(false)
+  const [commitMessage, setCommitMessage] = useState('')
+  const [committing, setCommitting] = useState(false)
 
-  useEffect(() => {
+  const refreshStatus = (signal: AbortSignal): void => {
     if (gitStatus === undefined) return
-    const controller = new AbortController()
-    let cancelled = false
-    void gitStatus(tab.id, controller.signal).then((result: {
+    void gitStatus(tab.id, signal).then((result: {
       changes: readonly { path: string; status: string; staged: boolean }[]
       branch: string | null
     }) => {
-      if (!cancelled) setChanges(result.changes)
+      setChanges(result.changes)
     }).catch(() => {
-      if (!cancelled) setChanges([])
+      setChanges([])
     })
-    return () => {
-      cancelled = true
-      controller.abort()
-    }
+  }
+
+  useEffect(() => {
+    const controller = new AbortController()
+    refreshStatus(controller.signal)
+    return () => { controller.abort() }
   }, [gitStatus, tab.id])
 
   useEffect(() => {
@@ -65,13 +67,42 @@ export function ChangesBody({
         {changes.map(change => (
           <li key={change.path}>
             <button type="button" onClick={() => { setSelected(change.path) }}>
-              {change.status} {change.path}
+              {change.status} {change.path} {change.staged ? '(staged)' : ''}
             </button>
+            {change.staged
+              ? (gitUnstage !== undefined && (
+                <button type="button" onClick={() => { void gitUnstage(tab.id, [change.path], new AbortController().signal).then(() => { refreshStatus(new AbortController().signal) }) }}>
+                    Unstage
+                </button>
+              ))
+              : (gitStage !== undefined && (
+                <button type="button" onClick={() => { void gitStage(tab.id, [change.path], new AbortController().signal).then(() => { refreshStatus(new AbortController().signal) }) }}>
+                    Stage
+                </button>
+              ))}
           </li>
         ))}
       </ul>
       {selected !== null && (
         <pre>{loading ? t('loading') : diff}</pre>
+      )}
+      {gitCommit !== undefined && (
+        <div>
+          <input value={commitMessage} onChange={(event) => { setCommitMessage(event.target.value) }} />
+          <button
+            type="button"
+            disabled={committing || commitMessage.trim() === ''}
+            onClick={() => {
+              setCommitting(true)
+              void gitCommit(tab.id, commitMessage, new AbortController().signal).then(() => {
+                setCommitMessage('')
+                refreshStatus(new AbortController().signal)
+              }).finally(() => { setCommitting(false) })
+            }}
+          >
+            Commit
+          </button>
+        </div>
       )}
     </div>
   )

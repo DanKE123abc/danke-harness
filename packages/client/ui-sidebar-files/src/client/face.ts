@@ -161,6 +161,9 @@ export interface FilesInjected {
     staged: boolean,
     signal: AbortSignal,
   ) => Promise<{ path: string; staged: boolean; text: string; truncated: boolean }>
+  readonly gitStage?: (tabId: TabId, paths: readonly string[], signal: AbortSignal) => Promise<void>
+  readonly gitUnstage?: (tabId: TabId, paths: readonly string[], signal: AbortSignal) => Promise<void>
+  readonly gitCommit?: (tabId: TabId, message: string, signal: AbortSignal) => Promise<{ commitId: string | null }>
 }
 
 /**
@@ -270,6 +273,22 @@ export function filesFace(
         const result = await remote.workspaceFiles.gitDiff(sessionId, path, staged, signal)
         if (!result.ok) return { path, staged, text: '', truncated: false }
         return { path: result.value.path, staged: result.value.staged, text: result.value.text, truncated: result.value.truncated }
+      },
+      gitStage: async (_tabId, paths, signal) => {
+        if (remote === undefined) return
+        const result = await remote.workspaceFiles.gitStage(sessionId, paths, signal)
+        if (!result.ok) throw new Error(result.error?.message ?? 'git stage failed')
+      },
+      gitUnstage: async (_tabId, paths, signal) => {
+        if (remote === undefined) return
+        const result = await remote.workspaceFiles.gitUnstage(sessionId, paths, signal)
+        if (!result.ok) throw new Error(result.error?.message ?? 'git unstage failed')
+      },
+      gitCommit: async (_tabId, message, signal) => {
+        if (remote === undefined) return { commitId: null }
+        const result = await remote.workspaceFiles.gitCommit(sessionId, message, signal)
+        if (!result.ok) throw new Error(result.error?.message ?? 'git commit failed')
+        return { commitId: result.value.commitId }
       },
     }
   }
